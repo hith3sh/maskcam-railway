@@ -1,4 +1,0 @@
-streamlit==0.74.1
-requests==2.25.1
-plotly==4.14.3
-paho-mqtt==1.5.1

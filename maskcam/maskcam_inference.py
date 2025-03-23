@@ -1,27 +1,5 @@
 #!/usr/bin/env python3
 
-################################################################################
-# Copyright (c) 2020-2021, Berkeley Design Technology, Inc. All rights reserved.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-################################################################################
-
 import os
 import gi
 import pyds
@@ -57,10 +35,10 @@ from .utils import glib_cb_restart, load_udp_ports_filesaving
 
 
 # YOLO labels. See obj.names file
-LABEL_MASK = "mask"
-LABEL_NO_MASK = "no_mask"  # YOLOv4: no_mask
-LABEL_MISPLACED = "misplaced"
-LABEL_NOT_VISIBLE = "not_visible"
+LABEL_DEFECTIVE = "Defective"
+LABEL_NON_DEFECTIVE = "Non-defective"
+# LABEL_MISPLACED = "misplaced"
+# LABEL_NOT_VISIBLE = "not_visible"
 FRAMES_LOG_INTERVAL = int(config["maskcam"]["inference-log-interval"])
 
 # Global vars
@@ -71,24 +49,24 @@ console = Console()
 e_interrupt = None
 
 
-class FaceMaskProcessor:
+class RailTrackProcessor:
     def __init__(
-        self, th_detection=0, th_vote=0, min_face_size=0, tracker_period=1, disable_tracker=False
+        self, th_detection=0, th_vote=0, min_track_size=0, tracker_period=1, disable_tracker=False
     ):
-        self.people_votes = {}
-        self.current_people = set()
+        self.track_votes = {}
+        self.current_tracks = set()
         self.th_detection = th_detection
         self.th_vote = th_vote
         self.tracker_period = tracker_period
-        self.min_face_size = min_face_size
+        self.min_track_size = min_track_size
         self.disable_detection_validation = False
         self.min_votes = 5
         self.max_votes = 50
-        self.color_mask = (0.0, 1.0, 0.0)  # green
-        self.color_no_mask = (1.0, 0.0, 0.0)  # red
+        self.color_defective = (1.0, 0.0, 0.0)  # red
+        self.color_non_defective = (0.0, 1.0, 0.0)  # green
         self.color_unknown = (1.0, 1.0, 0.0)  # yellow
         self.draw_raw_detections = disable_tracker
-        self.draw_tracked_people = not disable_tracker
+        self.draw_tracked_objects = not disable_tracker
         self.stats_lock = threading.Lock()
 
         # Norfair Tracker
@@ -129,78 +107,78 @@ class FaceMaskProcessor:
             return True
         box_width = box_points[1][0] - box_points[0][0]
         box_height = box_points[1][1] - box_points[0][1]
-        return min(box_width, box_height) >= self.min_face_size and score >= self.th_detection
+        return min(box_width, box_height) >= self.min_track_size and score >= self.th_detection
 
-    def add_detection(self, person_id, label, score):
+    def add_detection(self, track_id, label, score):
         # This function is called from streaming thread
         with self.stats_lock:
-            self.current_people.add(person_id)
-            if person_id not in self.people_votes:
-                self.people_votes[person_id] = 0
+            self.current_tracks.add(track_id)
+            if track_id not in self.track_votes:
+                self.track_votes[track_id] = 0
             if score > self.th_vote:
-                if label == LABEL_MASK:
-                    self.people_votes[person_id] += 1
-                elif label == LABEL_NO_MASK or LABEL_MISPLACED:
-                    self.people_votes[person_id] -= 1
+                if label == LABEL_NON_DEFECTIVE:
+                    self.track_votes[track_id] += 1
+                elif label == LABEL_DEFECTIVE:
+                    self.track_votes[track_id] -= 1
                 # max_votes limit
-                self.people_votes[person_id] = np.clip(
-                    self.people_votes[person_id], -self.max_votes, self.max_votes
+                self.track_votes[track_id] = np.clip(
+                    self.track_votes[track_id], -self.max_votes, self.max_votes
                 )
 
-    def get_person_label(self, person_id):
-        person_votes = self.people_votes[person_id]
-        if abs(person_votes) >= self.min_votes:
-            color = self.color_mask if person_votes > 0 else self.color_no_mask
-            label = "mask" if person_votes > 0 else "no mask"
+    def get_track_label(self, track_id):
+        track_votes = self.track_votes[track_id]
+        if abs(track_votes) >= self.min_votes:
+            color = self.color_non_defective if track_votes > 0 else self.color_defective
+            label = "Non-defective" if track_votes > 0 else "Defective"
         else:
             color = self.color_unknown
             label = "not visible"
-        return f"{person_id}|{label}({abs(person_votes)})", color
+        return f"{track_id}|{label}({abs(track_votes)})", color
 
     def get_instant_statistics(self, refresh=True):
         """
-        Get statistics only including people that appeared on camera since last refresh
+        Get statistics only including tracks that appeared on camera since last refresh
         """
-        instant_stats = self.get_statistics(filter_ids=self.current_people)
+        instant_stats = self.get_statistics(filter_ids=self.current_tracks)
         if refresh:
             with self.stats_lock:
-                self.current_people = set()
+                self.current_tracks = set()
         return instant_stats
 
     def get_statistics(self, filter_ids=None):
         with self.stats_lock:
             if filter_ids is not None:
-                filtered_people = {
-                    id: votes for id, votes in self.people_votes.items() if id in filter_ids
+                filtered_tracks = {
+                    id: votes for id, votes in self.track_votes.items() if id in filter_ids
                 }
             else:
-                filtered_people = self.people_votes
-            total_people = len(filtered_people)
+                filtered_tracks = self.track_votes
+            total_tracks = len(filtered_tracks)
             total_classified = 0
-            total_mask = 0
-            for person_id in filtered_people:
-                person_votes = filtered_people[person_id]
-                if abs(person_votes) >= self.min_votes:
+            total_non_defective = 0
+            for track_id in filtered_tracks:
+                track_votes = filtered_tracks[track_id]
+                if abs(track_votes) >= self.min_votes:
                     total_classified += 1
-                    if person_votes > 0:
-                        total_mask += 1
-        return total_people, total_classified, total_mask
+                    if track_votes > 0:
+                        total_non_defective += 1
+        return total_tracks, total_classified, total_non_defective
 
 
 def cb_add_statistics(cb_args):
-    stats_period, stats_queue, face_processor = cb_args
+    stats_period, stats_queue, track_processor = cb_args
 
-    people_total, people_classified, people_mask = face_processor.get_instant_statistics(
+    tracks_total, tracks_classified, tracks_non_defective = track_processor.get_instant_statistics(
         refresh=True
     )
-    people_no_mask = people_classified - people_mask
+    tracks_defective = tracks_classified - tracks_non_defective
 
     # stats_queue is an mp.Queue optionally provided externally (in main())
     stats_queue.put_nowait(
         {
-            "people_total": people_total,
-            "people_with_mask": people_mask,
-            "people_without_mask": people_no_mask,
+            "tracks_total": tracks_total,
+            "tracks_non_defective": tracks_non_defective,
+            "tracks_defective": tracks_defective,
             "timestamp": datetime.timestamp(datetime.now(timezone.utc)),
         }
     )
@@ -254,7 +232,7 @@ def cb_buffer_probe(pad, info, cb_args):
     global frame_number
     global start_time
 
-    face_processor, e_ready = cb_args
+    track_processor, e_ready = cb_args
     gst_buffer = info.get_buffer()
     if not gst_buffer:
         print("Unable to get GstBuffer", error=True)
@@ -306,7 +284,7 @@ def cb_buffer_probe(pad, info, cb_args):
             )
             box_p = obj_meta.confidence
             box_label = obj_meta.obj_label
-            if face_processor.validate_detection(box_points, box_p, box_label):
+            if track_processor.validate_detection(box_points, box_p, box_label):
                 det_data = {"label": box_label, "p": box_p}
                 detections.append(
                     Detection(
@@ -329,29 +307,29 @@ def cb_buffer_probe(pad, info, cb_args):
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
 
-        if face_processor.tracker is not None:
-            # Track, count and draw tracked people
-            tracked_people = face_processor.tracker.update(
-                detections, period=face_processor.tracker_period
+        if track_processor.tracker is not None:
+            # Track, count and draw tracked objects
+            tracked_objects = track_processor.tracker.update(
+                detections, period=track_processor.tracker_period
             )
-            # Filter out people with no live points (don't draw)
-            drawn_people = [person for person in tracked_people if person.live_points.any()]
+            # Filter out objects with no live points (don't draw)
+            drawn_objects = [obj for obj in tracked_objects if obj.live_points.any()]
 
-            if face_processor.draw_tracked_people:
-                for n_person, person in enumerate(drawn_people):
-                    points = person.estimate
+            if track_processor.draw_tracked_objects:
+                for n_object, obj in enumerate(drawn_objects):
+                    points = obj.estimate
                     box_points = points.clip(0).astype(int)
 
-                    # Update mask votes
-                    face_processor.add_detection(
-                        person.id,
-                        person.last_detection.data["label"],
-                        person.last_detection.data["p"],
+                    # Update track votes
+                    track_processor.add_detection(
+                        obj.id,
+                        obj.last_detection.data["label"],
+                        obj.last_detection.data["p"],
                     )
-                    label, color = face_processor.get_person_label(person.id)
+                    label, color = track_processor.get_track_label(obj.id)
 
-                    # Index of this person's drawing in the current meta
-                    n_draw = n_person % max_drawings_per_meta
+                    # Index of this object's drawing in the current meta
+                    n_draw = n_object % max_drawings_per_meta
 
                     if n_draw == 0:  # Initialize meta
                         # Acquiring a display meta object. The memory ownership remains in
@@ -363,17 +341,17 @@ def cb_buffer_probe(pad, info, cb_args):
                     draw_detection(display_meta, n_draw, box_points, label, color)
 
         # Raw detections
-        if face_processor.draw_raw_detections:
+        if track_processor.draw_raw_detections:
             for n_detection, detection in enumerate(detections):
                 points = detection.points
                 box_points = points.clip(0).astype(int)
                 label = detection.data["label"]
-                if label == LABEL_MASK:
-                    color = face_processor.color_mask
-                elif label == LABEL_NO_MASK or label == LABEL_MISPLACED:
-                    color = face_processor.color_no_mask
+                if label == LABEL_NON_DEFECTIVE:
+                    color = track_processor.color_non_defective
+                elif label == LABEL_DEFECTIVE:
+                    color = track_processor.color_defective
                 else:
-                    color = face_processor.color_unknown
+                    color = track_processor.color_unknown
                 label = f"{label} | {detection.data['p']:.2f}"
                 n_draw = n_detection % max_drawings_per_meta
 
@@ -554,18 +532,18 @@ def main(
         skip_inference = int(config["property"]["interval"])
         print(f"Configured frames to skip inference: {skip_inference}")
 
-    # FaceMask initialization
-    face_tracker_period = skip_inference + 1  # tracker_period=skipped + inference frame(1)
-    face_detection_threshold = float(config["face-processor"]["detection-threshold"])
-    face_voting_threshold = float(config["face-processor"]["voting-threshold"])
-    face_min_face_size = int(config["face-processor"]["min-face-size"])
-    face_disable_tracker = int(config["face-processor"]["disable-tracker"])
-    face_processor = FaceMaskProcessor(
-        th_detection=face_detection_threshold,
-        th_vote=face_voting_threshold,
-        min_face_size=face_min_face_size,
-        tracker_period=face_tracker_period,
-        disable_tracker=face_disable_tracker,
+    # RailTrack initialization
+    track_tracker_period = skip_inference + 1  # tracker_period=skipped + inference frame(1)
+    track_detection_threshold = float(config["track-processor"]["detection-threshold"])
+    track_voting_threshold = float(config["track-processor"]["voting-threshold"])
+    track_min_track_size = int(config["track-processor"]["min-track-size"])
+    track_disable_tracker = int(config["track-processor"]["disable-tracker"])
+    track_processor = RailTrackProcessor(
+        th_detection=track_detection_threshold,
+        th_vote=track_voting_threshold,
+        min_track_size=track_min_track_size,
+        tracker_period=track_tracker_period,
+        disable_tracker=track_disable_tracker,
     )
 
     # Standard GStreamer initialization
@@ -790,7 +768,7 @@ def main(
     if not osdsinkpad:
         print("Unable to get sink pad of nvosd", error=True)
 
-    cb_args = (face_processor, e_ready)
+    cb_args = (track_processor, e_ready)
     osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, cb_buffer_probe, cb_args)
 
     # GLib loop required for RTSP server
@@ -819,7 +797,7 @@ def main(
 
         # Timer to add statistics to queue
         if stats_queue is not None:
-            cb_args = stats_period, stats_queue, face_processor
+            cb_args = stats_period, stats_queue, track_processor
             GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
 
         # Periodic gloop interrupt (see utils.glib_cb_restart)

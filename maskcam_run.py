@@ -1,27 +1,5 @@
 #!/usr/bin/env python3
 
-################################################################################
-# Copyright (c) 2020-2021, Berkeley Design Technology Inc. All rights reserved.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-################################################################################
-
 import os
 import sys
 import json
@@ -29,10 +7,6 @@ import shutil
 import signal
 import threading
 import multiprocessing as mp
-
-# Avoids random hangs in child processes (https://pythonspeed.com/articles/python-multiprocessing/)
-#mp.set_start_method("spawn")  # noqa
-
 from rich.console import Console
 from datetime import datetime, timedelta
 
@@ -53,21 +27,6 @@ from maskcam.utils import (
     load_udp_ports_filesaving,
     get_streaming_address,
     format_tdelta,
-)
-from maskcam.mqtt_common import mqtt_connect_broker, mqtt_send_msg
-from maskcam.mqtt_common import (
-    MQTT_BROKER_IP,
-    MQTT_BROKER_PORT,
-    MQTT_DEVICE_DESCRIPTION,
-    MQTT_DEVICE_NAME,
-)
-from maskcam.mqtt_common import (
-    MQTT_TOPIC_ALERTS,
-    MQTT_TOPIC_FILES,
-    MQTT_TOPIC_HELLO,
-    MQTT_TOPIC_STATS,
-    MQTT_TOPIC_UPDATE,
-    MQTT_TOPIC_COMMANDS,
 )
 from maskcam.maskcam_inference import main as inference_main
 from maskcam.maskcam_filesave import main as filesave_main
@@ -140,133 +99,28 @@ def new_command(command):
     q_commands.put_nowait(command)
 
 
-def mqtt_init(config):
-    if MQTT_BROKER_IP is None or MQTT_DEVICE_NAME is None:
-        print(
-            "[red]MQTT is DISABLED[/red]"
-            " since MQTT_BROKER_IP or MQTT_DEVICE_NAME env vars are not defined\n",
-            warning=True,
-        )
-        mqtt_client = None
-    else:
-        print(f"Connecting to MQTT server {MQTT_BROKER_IP}:{MQTT_BROKER_PORT}")
-        print(f"Device name: [green]{MQTT_DEVICE_NAME}[/green]\n\n")
-        mqtt_client = mqtt_connect_broker(
-            client_id=MQTT_DEVICE_NAME,
-            broker_ip=MQTT_BROKER_IP,
-            broker_port=MQTT_BROKER_PORT,
-            subscribe_to=[(MQTT_TOPIC_COMMANDS, 2)],  # handles re-subscription
-            cb_success=mqtt_on_connect,
-        )
-        mqtt_client.on_message = mqtt_process_message
-
-        return mqtt_client
-
-
-def mqtt_on_connect(mqtt_client):
-    mqtt_say_hello(mqtt_client)
-    mqtt_send_file_list(mqtt_client)
-
-
-def mqtt_process_message(mqtt_client, userdata, message):
-    topic = message.topic
-    if topic == MQTT_TOPIC_COMMANDS:
-        payload = json.loads(message.payload.decode())
-
-        if payload["device_id"] != MQTT_DEVICE_NAME:
-            return
-        command = payload["command"]
-        new_command(command)
-
-
-def mqtt_say_hello(mqtt_client):
-    return mqtt_send_msg(
-        mqtt_client,
-        MQTT_TOPIC_HELLO,
-        {"device_id": MQTT_DEVICE_NAME, "description": MQTT_DEVICE_DESCRIPTION},
-        enqueue=False,  # Will be resent on_connect
-    )
-
-
-def mqtt_send_device_status(mqtt_client):
-    t_now = datetime.now()
-    device_address = get_ip_address()
-    is_valid_address = device_address != ADDRESS_UNKNOWN_LABEL
-    if P_INFERENCE in processes_info and processes_info[P_INFERENCE]["running"]:
-        inference_runtime = t_now - processes_info[P_INFERENCE]["started"]
-    else:
-        inference_runtime = None
-    if P_FILESERVER in processes_info and processes_info[P_FILESERVER]["running"]:
-        fileserver_runtime = t_now - processes_info[P_FILESERVER]["started"]
-    else:
-        fileserver_runtime = None
-    if P_STREAMING in processes_info and processes_info[P_STREAMING]["running"]:
-        streaming_address = get_streaming_address(
-            device_address,
-            config["maskcam"]["streaming-port"],
-            config["maskcam"]["streaming-path"],
-        )
-    else:
-        streaming_address = "N/A"
-    total_fsave = len(active_filesave_processes)
-    keep_n = len([p for p in active_filesave_processes if p["flag_keep_file"]])
-    return mqtt_send_msg(
-        mqtt_client,
-        MQTT_TOPIC_UPDATE,
-        {
-            "device_id": MQTT_DEVICE_NAME,
-            "inference_runtime": format_tdelta(inference_runtime),
-            "fileserver_runtime": format_tdelta(fileserver_runtime),
-            "streaming_address": streaming_address,
-            "device_address": device_address if is_valid_address else None,
-            "save_current_files": f"{keep_n}/{total_fsave}",
-            "time": f"{t_now:%H:%M:%S}",
-        },
-        enqueue=False,  # Only latest status is interesting
-    )
-
-
-def mqtt_send_file_list(mqtt_client):
-    server_address = get_ip_address()
-    server_port = int(config["maskcam"]["fileserver-port"])
-    try:
-        file_list = sorted(os.listdir(config["maskcam"]["fileserver-hdd-dir"]))
-    except FileNotFoundError:  # directory not created
-        file_list = []
-    return mqtt_send_msg(
-        mqtt_client,
-        MQTT_TOPIC_FILES,
-        {
-            "device_id": MQTT_DEVICE_NAME,
-            "file_server": f"http://{server_address}:{server_port}",
-            "file_list": file_list,
-        },
-        enqueue=False,  # Will be resent on_connect or when something changes
-    )
-
-
 def is_alert_condition(statistics, config):
     # Thresholds config
-    max_total_people = int(config["maskcam"]["alert-max-total-people"])
-    min_visible_people = int(config["maskcam"]["alert-min-visible-people"])
-    max_no_mask = float(config["maskcam"]["alert-no-mask-fraction"])
+    max_total_tracks = int(config["maskcam"]["alert-max-total-tracks"])
+    min_visible_tracks = int(config["maskcam"]["alert-min-visible-tracks"])
+    max_defective = float(config["maskcam"]["alert-defective-fraction"])
 
-    # Calculate visible people
-    without_mask = int(statistics["people_without_mask"])
-    with_mask = int(statistics["people_with_mask"])
-    visible_people = with_mask + without_mask
+    # Calculate visible tracks
+    defective = int(statistics["tracks_defective"])
+    non_defective = int(statistics["tracks_non_defective"])
+    visible_tracks = non_defective + defective
     is_alert = False
-    if statistics["people_total"] > max_total_people:
+    if statistics["tracks_total"] > max_total_tracks:
         is_alert = True
-    elif visible_people >= min_visible_people:
-        no_mask_fraction = float(statistics["people_without_mask"]) / visible_people
-        is_alert = no_mask_fraction > max_no_mask
+    elif visible_tracks >= min_visible_tracks:
+        defective_fraction = float(statistics["tracks_defective"]) / visible_tracks
+        is_alert = defective_fraction > max_defective
 
     print(f"[yellow]ALERT condition: {is_alert}[/yellow]")
     return is_alert
 
 
-def handle_statistics(mqtt_client, stats_queue, config, is_live_input):
+def handle_statistics(stats_queue, config, is_live_input):
     while not stats_queue.empty():
         statistics = stats_queue.get_nowait()
 
@@ -275,11 +129,6 @@ def handle_statistics(mqtt_client, stats_queue, config, is_live_input):
             raise_alert = is_alert_condition(statistics, config)
             if raise_alert:
                 flag_keep_current_files()
-
-            if mqtt_client is not None:
-                topic = MQTT_TOPIC_ALERTS if raise_alert else MQTT_TOPIC_STATS
-                message = {"device_id": MQTT_DEVICE_NAME, **statistics}
-                mqtt_send_msg(mqtt_client, topic, message, enqueue=True)
 
 
 def allocate_free_udp_port():
@@ -294,7 +143,7 @@ def release_udp_port(port_number):
 
 
 def handle_file_saving(
-    video_period, video_duration, ram_dir, hdd_dir, force_save, mqtt_client=None
+    video_period, video_duration, ram_dir, hdd_dir, force_save
 ):
     period = timedelta(seconds=video_period)
     duration = timedelta(seconds=video_duration)
@@ -305,7 +154,7 @@ def handle_file_saving(
     terminated_idxs = []
     for idx, active_process in enumerate(active_filesave_processes):
         if datetime.now() - active_process["started"] >= duration:
-            finish_filesave_process(active_process, hdd_dir, force_save, mqtt_client=mqtt_client)
+            finish_filesave_process(active_process, hdd_dir, force_save)
             terminated_idxs.append(idx)
         if latest_start is None or active_process["started"] > latest_start:
             latest_start = active_process["started"]
@@ -348,7 +197,7 @@ def handle_file_saving(
         )
 
 
-def finish_filesave_process(active_process, hdd_dir, force_filesave, mqtt_client=None):
+def finish_filesave_process(active_process, hdd_dir, force_filesave):
     terminate_process(
         active_process["name"],
         active_process["process_handler"],
@@ -364,8 +213,6 @@ def finish_filesave_process(active_process, hdd_dir, force_filesave, mqtt_client
         print(f"Permanent video file created: [green]{definitive_filepath}[/green]")
         # Must use shutil here to move RAM->HDD
         shutil.move(active_process["filepath"], definitive_filepath)
-        # Send updated file list via MQTT (prints ignore if mqtt_client is None)
-        mqtt_send_file_list(mqtt_client)
     else:
         print(f"Removing RAM video file: {active_process['filepath']}")
         os.remove(active_process["filepath"])
@@ -447,12 +294,6 @@ if __name__ == "__main__":
         # Should only have 1 element at a time unless this thread gets blocked
         stats_queue = mp.Queue(maxsize=5)
 
-        # Init MQTT or set these to None
-        if is_live_input:
-            mqtt_client = mqtt_init(config)
-        else:
-            mqtt_client = None
-
         # SIGINT handler (Ctrl+C)
         signal.signal(signal.SIGINT, sigint_handler)
         print("[green bold]Press Ctrl+C to stop all processes[/green bold]")
@@ -484,8 +325,8 @@ if __name__ == "__main__":
         )
 
         while not e_interrupt.is_set():
-            # Send MQTT statistics, detect alarm events and request file-saving
-            handle_statistics(mqtt_client, stats_queue, config, is_live_input)
+            # Send statistics, detect alarm events and request file-saving
+            handle_statistics(stats_queue, config, is_live_input)
 
             # Handle sequential file saving processes, only after inference process is ready
             if e_inference_ready.is_set():
@@ -496,23 +337,19 @@ if __name__ == "__main__":
                         fileserver_ram_dir,
                         fileserver_hdd_dir,
                         fileserver_force_save,
-                        mqtt_client=mqtt_client,
                     )
 
             if not q_commands.empty():
                 command = q_commands.get_nowait()
-                reply_updated_status = False
                 print(f"Processing command: [yellow]{command}[yellow]")
                 if command == CMD_STREAMING_START:
                     if process_streaming is None or not process_streaming.is_alive():
                         process_streaming, e_interrupt_streaming = start_process(
                             P_STREAMING, streaming_main, config
                         )
-                    reply_updated_status = True
                 elif command == CMD_STREAMING_STOP:
                     if process_streaming is not None and process_streaming.is_alive():
                         terminate_process(P_STREAMING, process_streaming, e_interrupt_streaming)
-                    reply_updated_status = True
                 elif command == CMD_INFERENCE_RESTART:
                     if process_inference.is_alive():
                         terminate_process(P_INFERENCE, process_inference, e_interrupt_inference)
@@ -524,7 +361,6 @@ if __name__ == "__main__":
                         output_filename=output_filename,
                         stats_queue=stats_queue,
                     )
-                    reply_updated_status = True
                 elif command == CMD_FILESERVER_RESTART:
                     if process_fileserver is not None and process_fileserver.is_alive():
                         terminate_process(P_FILESERVER, process_fileserver, e_interrupt_fileserver)
@@ -535,17 +371,10 @@ if __name__ == "__main__":
                         directory=fileserver_hdd_dir,
                     )
                     fileserver_enabled = True
-                    reply_updated_status = True
                 elif command == CMD_FILE_SAVE:
                     flag_keep_current_files()
-                    reply_updated_status = True
-                elif command == CMD_STATUS_REQUEST:
-                    reply_updated_status = True
                 else:
                     print("[red]Command not recognized[/red]", error=True)
-
-                if reply_updated_status:
-                    mqtt_send_device_status(mqtt_client)
             else:
                 e_interrupt.wait(timeout=0.1)
 
@@ -573,7 +402,6 @@ if __name__ == "__main__":
                 active_file_process,
                 fileserver_hdd_dir,
                 fileserver_force_save,
-                mqtt_client=mqtt_client,
             )
         except:  # noqa
             console.print_exception()

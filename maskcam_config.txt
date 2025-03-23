@@ -1,13 +1,12 @@
-
 # NOTE: Some values might be overriden via ENV vars (check maskcam/config.py)
 
-[face-processor]
+[track-processor]
 # Detections with score below this threshold will be discarded
 detection-threshold=0.1
-# Only vote mask/no_mask when detection score is above this
+# Only vote defective/non-defective when detection score is above this
 voting-threshold=0.75
 # Smaller detections (in pixels) will be discarded
-min-face-size=8
+min-track-size=8
 
 # Disable tracker to draw raw detections and set thresholds above
 disable-tracker=0
@@ -19,16 +18,16 @@ mqtt-broker-ip=0
 mqtt-device-name=0
 
 mqtt-broker-port=1883
-mqtt-device-description=MaskCam @ Jetson Nano
+mqtt-device-description=Rail Track Defect Detection @ Jetson Nano
 
 [maskcam]
 # Alert conditions
-# Minimum people to even calculate no-mask-fraction
-alert-min-visible-people=1
-# More than this fraction of people without mask will raise an alarm
-alert-no-mask-fraction=0.25
-# More than this people detected will raise alarm despite no-mask-fraction
-alert-max-total-people=10
+# Minimum tracks to even calculate defective-fraction
+alert-min-visible-tracks=1
+# More than this fraction of defective tracks will raise an alarm
+alert-defective-fraction=0.25
+# More than this tracks detected will raise alarm despite defective-fraction
+alert-max-total-tracks=10
 
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
 statistics-period=15
@@ -102,9 +101,9 @@ model-color-format=0
 # model-engine-file=yolo/facemask_y4tiny_1024_608_fp16.trt
 # model-engine-file=yolo/maskcam_y4t_1184_672_fp16.trt
 # model-engine-file=yolo/maskcam_y4t_1120_640_fp16.trt
-model-engine-file=yolo/maskcam_y4t_1024_608_fp16.trt
-labelfile-path=yolo/data/obj.names
-custom-lib-path=deepstream_plugin_yolov4/libnvdsinfer_custom_impl_Yolo.so
+#model-engine-file=yolo/maskcam_y4t_1024_608_fp16.trt
+#labelfile-path=yolo/data/obj.names
+#custom-lib-path=deepstream_plugin_yolov4/libnvdsinfer_custom_impl_Yolo.so
 
 # Detectnet_v2
 # tlt-encoded-model=detectnet_v2/resnet18_detector.etlt
@@ -114,9 +113,6 @@ custom-lib-path=deepstream_plugin_yolov4/libnvdsinfer_custom_impl_Yolo.so
 # uff-input-blob-name=input_1
 # output-blob-names=output_cov/Sigmoid;output_bbox/BiasAdd
 
-
-
-
 # YOLOV11
 #onnx-file=yolov11-weights/yolov11n.onnx
 #model-engine-file=model_b1_gpu0_fp16.engine
@@ -124,9 +120,7 @@ custom-lib-path=deepstream_plugin_yolov4/libnvdsinfer_custom_impl_Yolo.so
 #custom-lib-path=nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
 
 
-
-
-num-detected-classes=4
+num-detected-classes=2
 
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=2
