@@ -1,0 +1,28 @@
+----How to use trtexec
+
+
+cd /usr/src/tensorrt/bin
+./trtexec --loadEngine=/home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/model_b1_gpu0_fp32.engine
+
+
+----how to save vid file instead watching
+[sink0]
+enable=1
+type=3
+container=1
+codec=1
+bitrate=4000000
+output-file=hehe.mp4
+sync=0
+gpu-id=0
+nvbuf-memory-type=0
+
+
+--to watch live
+[sink0]
+enable=1
+type=2
+sync=0
+gpu-id=0
+nvbuf-memory-type=0
+
