@@ -4,7 +4,6 @@
   <img src="/docs/imgs/MaskCam-Demo1.gif">
 </p>
 
-python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
 
 MaskCam is a prototype reference design for a Jetson Nano-based smart camera system that measures crowd face mask usage in real-time, with all AI computation performed at the edge. MaskCam detects and tracks people in its field of view and determines whether they are wearing a mask via an object detection, tracking, and voting algorithm. It uploads statistics (not videos) to the cloud, where a web GUI can be used to monitor face mask compliance in the field of view. It saves interesting video snippets to local disk (e.g., a sudden influx of lots of people not wearing masks) and can optionally stream video via RTSP.
 
@@ -302,4 +301,7 @@ Sometimes after restarting the process or the whole docker container many times,
 
 ## Questions? Need Help?
 Email us at maskcam@bdti.com, and be sure to check out our [independent report on the development of MaskCam](https://bdti.com/maskcam)!
+
+
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
 
