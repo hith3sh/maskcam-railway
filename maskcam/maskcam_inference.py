@@ -13,6 +13,7 @@ import numpy as np
 import multiprocessing as mp
 from rich.console import Console
 from datetime import datetime, timezone
+import json
 
 
 gi.require_version("Gst", "1.0")
@@ -50,6 +51,7 @@ class RailTrackProcessor:
     ):
         self.track_votes = {}
         self.current_tracks = set()
+        self.track_detection_times = {}  # New: Store detection times
         self.th_detection = th_detection
         self.th_vote = th_vote
         self.tracker_period = tracker_period
@@ -115,6 +117,9 @@ class RailTrackProcessor:
                     self.track_votes[track_id] += 1
                 elif label == LABEL_DEFECTIVE:
                     self.track_votes[track_id] -= 1
+                    # Record detection time for defective tracks
+                    if track_id not in self.track_detection_times:
+                        self.track_detection_times[track_id] = datetime.now(timezone.utc)
                 # max_votes limit
                 self.track_votes[track_id] = np.clip(
                     self.track_votes[track_id], -self.max_votes, self.max_votes
@@ -151,30 +156,37 @@ class RailTrackProcessor:
             total_tracks = len(filtered_tracks)
             total_classified = 0
             total_non_defective = 0
+            defective_tracks_info = []  # New: Store info about defective tracks
             for track_id in filtered_tracks:
                 track_votes = filtered_tracks[track_id]
                 if abs(track_votes) >= self.min_votes:
                     total_classified += 1
                     if track_votes > 0:
                         total_non_defective += 1
-        return total_tracks, total_classified, total_non_defective
+                    elif track_id in self.track_detection_times:
+                        defective_tracks_info.append({
+                            'track_id': track_id,
+                            'detection_time': self.track_detection_times[track_id],
+                            'confidence': abs(track_votes) / self.max_votes
+                        })
+        return total_tracks, total_classified, total_non_defective, defective_tracks_info
 
 
 def cb_add_statistics(cb_args):
     stats_period, stats_queue, track_processor = cb_args
 
-    tracks_total, tracks_classified, tracks_non_defective = track_processor.get_instant_statistics(
+    tracks_total, tracks_classified, tracks_non_defective, defective_tracks_info = track_processor.get_instant_statistics(
         refresh=True
     )
     tracks_defective = tracks_classified - tracks_non_defective
 
-    # stats_queue is an mp.Queue optionally provided externally (in main())
     stats_queue.put_nowait(
         {
             "tracks_total": tracks_total,
             "tracks_non_defective": tracks_non_defective,
             "tracks_defective": tracks_defective,
             "timestamp": datetime.timestamp(datetime.now(timezone.utc)),
+            "defective_tracks": defective_tracks_info  # New: Include detailed defective track info
         }
     )
 
@@ -504,6 +516,11 @@ def main(
 
     codec = config["maskcam"]["codec"]
     stats_period = int(config["maskcam"]["statistics-period"])
+
+    # Create statistics file if stats_queue is provided
+    if stats_queue is not None:
+        stats_file = "inference_statistics.json"
+        print(f"Statistics will be saved to: {stats_file}")
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
     output_width = int(config["maskcam"]["output-video-width"])
@@ -850,6 +867,21 @@ def main(
                 )
         if output_filename is not None:
             print(f"Output file saved: [green bold]{output_filename}[/green bold]")
+
+        # Save statistics at the end
+        if stats_queue is not None:
+            statistics = []
+            while not stats_queue.empty():
+                try:
+                    stat = stats_queue.get_nowait()
+                    statistics.append(stat)
+                except queue.Empty:
+                    break
+            
+            # Save statistics to file
+            with open(stats_file, 'w') as f:
+                json.dump(statistics, f, indent=2, default=str)
+            print(f"Statistics saved to: {stats_file}")
     except:
         console.print_exception()
         pipeline.set_state(Gst.State.NULL)

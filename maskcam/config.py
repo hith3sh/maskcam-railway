@@ -7,18 +7,22 @@ config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 config.sections()
 
+
+# This file is used to override the config file values if you want to 
+# run maskcam with different parameters. rather than in the config file.
+
 # Environment variables overriding config file values
 # Each row is: (ENV_VAR_NAME, (config-section, config-param))
 ENV_CONFIG_OVERRIDES = (
     ("MASKCAM_INPUT", ("maskcam", "default-input")),  # Redundant with start.sh script
     ("MASKCAM_DEVICE_ADDRESS", ("maskcam", "device-address")),
-    ("MASKCAM_DETECTION_THRESHOLD", ("face-processor", "detection-threshold")),
-    ("MASKCAM_VOTING_THRESHOLD", ("face-processor", "voting-threshold")),
-    ("MASKCAM_MIN_FACE_SIZE", ("face-processor", "min-face-size")),
-    ("MASKCAM_DISABLE_TRACKER", ("face-processor", "disable-tracker")),
-    ("MASKCAM_ALERT_MIN_VISIBLE_PEOPLE", ("maskcam", "alert-min-visible-people")),
-    ("MASKCAM_ALERT_MAX_TOTAL_PEOPLE", ("maskcam", "alert-max-total-people")),
-    ("MASKCAM_ALERT_NO_MASK_FRACTION", ("maskcam", "alert-no-mask-fraction")),
+    ("MASKCAM_DETECTION_THRESHOLD", ("track-processor", "detection-threshold")),
+    ("MASKCAM_VOTING_THRESHOLD", ("track-processor", "voting-threshold")),
+    ("MASKCAM_MIN_TRACK_SIZE", ("track-processor", "min-track-size")),
+    ("MASKCAM_DISABLE_TRACKER", ("track-processor", "disable-tracker")),
+    ("MASKCAM_ALERT_MIN_VISIBLE_TRACKS", ("maskcam", "alert-min-visible-tracks")),
+    ("MASKCAM_ALERT_MAX_TOTAL_TRACKS", ("maskcam", "alert-max-total-tracks")),
+    ("MASKCAM_ALERT_DEFECTIVE_FRACTION", ("maskcam", "alert-defective-fraction")),
     ("MASKCAM_STATISTICS_PERIOD", ("maskcam", "statistics-period")),
     ("MASKCAM_TIMEOUT_INFERENCE_RESTART", ("maskcam", "timeout-inference-restart")),
     ("MASKCAM_CAMERA_FRAMERATE", ("maskcam", "camera-framerate")),
