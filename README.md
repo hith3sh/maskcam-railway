@@ -4,6 +4,8 @@
   <img src="/docs/imgs/MaskCam-Demo1.gif">
 </p>
 
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
+
 MaskCam is a prototype reference design for a Jetson Nano-based smart camera system that measures crowd face mask usage in real-time, with all AI computation performed at the edge. MaskCam detects and tracks people in its field of view and determines whether they are wearing a mask via an object detection, tracking, and voting algorithm. It uploads statistics (not videos) to the cloud, where a web GUI can be used to monitor face mask compliance in the field of view. It saves interesting video snippets to local disk (e.g., a sudden influx of lots of people not wearing masks) and can optionally stream video via RTSP.
 
 MaskCam can be run on a Jetson Nano Developer Kit, or on a Jetson Nano module (SOM) with the ConnectTech Photon carrier board. It was designed to use the Raspberry Pi High Quality Camera but will also work with pretty much any USB webcam that is supported on Linux.
