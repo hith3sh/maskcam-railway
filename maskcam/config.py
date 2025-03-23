@@ -35,10 +35,6 @@ ENV_CONFIG_OVERRIDES = (
     ("MASKCAM_FILESERVER_VIDEO_PERIOD", ("maskcam", "fileserver-video-period")),
     ("MASKCAM_FILESERVER_VIDEO_DURATION", ("maskcam", "fileserver-video-duration")),
     ("MASKCAM_FILESERVER_HDD_DIR", ("maskcam", "fileserver-hdd-dir")),
-    ("MQTT_BROKER_IP", ("mqtt", "mqtt-broker-ip")),
-    ("MQTT_BROKER_PORT", ("mqtt", "mqtt-broker-port")),
-    ("MQTT_DEVICE_NAME", ("mqtt", "mqtt-device-name")),
-    ("MQTT_DEVICE_DESCRIPTION", ("mqtt", "mqtt-device-description")),
 )
 
 # Apply overrides

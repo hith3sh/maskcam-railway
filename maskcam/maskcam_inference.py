@@ -33,12 +33,8 @@ from .common import (
 )
 from .utils import glib_cb_restart, load_udp_ports_filesaving
 
-
-# YOLO labels. See obj.names file
 LABEL_DEFECTIVE = "Defective"
 LABEL_NON_DEFECTIVE = "Non-defective"
-# LABEL_MISPLACED = "misplaced"
-# LABEL_NOT_VISIBLE = "not_visible"
 FRAMES_LOG_INTERVAL = int(config["maskcam"]["inference-log-interval"])
 
 # Global vars
@@ -47,7 +43,6 @@ start_time = None
 end_time = None
 console = Console()
 e_interrupt = None
-
 
 class RailTrackProcessor:
     def __init__(
