@@ -1,0 +1,14 @@
+# General deps
+numpy
+scipy
+PyYAML
+ipdb
+
+# MQTT
+paho-mqtt
+
+# Tracker
+norfair
+
+# Colored prints and traceback
+rich
