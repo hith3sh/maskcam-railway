@@ -180,13 +180,15 @@ def cb_add_statistics(cb_args):
     )
     tracks_defective = tracks_classified - tracks_non_defective
 
+    print(f"Statistics collected: total={tracks_total}, classified={tracks_classified}, non_defective={tracks_non_defective}, defective={tracks_defective}")  # Debug print
+
     stats_queue.put_nowait(
         {
             "tracks_total": tracks_total,
             "tracks_non_defective": tracks_non_defective,
             "tracks_defective": tracks_defective,
             "timestamp": datetime.timestamp(datetime.now(timezone.utc)),
-            "defective_tracks": defective_tracks_info  # New: Include detailed defective track info
+            "defective_tracks": defective_tracks_info
         }
     )
 
@@ -283,7 +285,7 @@ def cb_buffer_probe(pad, info, cb_args):
             obj_meta_list.append(obj_meta)
             obj_meta.rect_params.border_color.set(0.0, 0.0, 1.0, 0.0)
             box = obj_meta.rect_params
-            # print(f"{obj_meta.obj_label} | {obj_meta.confidence}")
+            print(f"Detection: {obj_meta.obj_label} | Confidence: {obj_meta.confidence}")  # Debug print
 
             box_points = (
                 (box.left, box.top),
@@ -299,7 +301,7 @@ def cb_buffer_probe(pad, info, cb_args):
                         data=det_data,
                     )
                 )
-                # print(f"Added detection: {det_data}")
+                print(f"Valid detection added: {det_data}")  # Debug print
             try:
                 l_obj = l_obj.next
             except StopIteration:
@@ -516,6 +518,7 @@ def main(
 
     codec = config["maskcam"]["codec"]
     stats_period = int(config["maskcam"]["statistics-period"])
+    print(f"Statistics period: {stats_period} seconds")
 
     # Create statistics file if stats_queue is provided
     if stats_queue is not None:
@@ -524,6 +527,8 @@ def main(
         stats_dir = config["maskcam"]["fileserver-hdd-dir"]
         stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
         print(f"Statistics will be saved to: {stats_file}")
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(stats_file), exist_ok=True)
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
     output_width = int(config["maskcam"]["output-video-width"])
@@ -881,8 +886,6 @@ def main(
                 except queue.Empty:
                     break
             
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(stats_file), exist_ok=True)
             
             # Save statistics to file
             with open(stats_file, 'w') as f:
