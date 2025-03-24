@@ -880,23 +880,33 @@ def main(
 
         # Save statistics at the end
         if stats_queue is not None:
-            print(f"Starting to collect statistics from queue. Queue size: {stats_queue.qsize()}")  # Debug print
+            print(f"\n=== Starting Statistics Collection ===")
+            print(f"Queue size before collection: {stats_queue.qsize()}")
             statistics = []
-            while not stats_queue.empty():
-                try:
-                    stat = stats_queue.get_nowait()
-                    print(f"Retrieved stat from queue: {stat}")  # Debug print
-                    statistics.append(stat)
-                except queue.Empty:
-                    print("Queue is empty, breaking loop")  # Debug print
-                    break
-            
-            print(f"Total statistics collected: {len(statistics)}")  # Debug print
-            
-            # Save statistics to file
-            with open(stats_file, 'w') as f:
-                json.dump(statistics, f, indent=2, default=str)
-            print(f"Statistics saved to: {stats_file}")
+            try:
+                while not stats_queue.empty():
+                    try:
+                        stat = stats_queue.get_nowait()
+                        print(f"Retrieved stat from queue: {stat}")
+                        statistics.append(stat)
+                    except queue.Empty:
+                        print("Queue is empty, breaking loop")
+                        break
+                
+                print(f"Total statistics collected: {len(statistics)}")
+                
+                # Save statistics to file
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                stats_dir = config["maskcam"]["fileserver-hdd-dir"]
+                stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
+                print(f"Saving statistics to: {stats_file}")
+                
+                with open(stats_file, 'w') as f:
+                    json.dump(statistics, f, indent=2, default=str)
+                print(f"Statistics successfully saved to file")
+            except Exception as e:
+                print(f"Error saving statistics: {str(e)}")
+            print("=== Statistics Collection Complete ===\n")
     except:
         console.print_exception()
         pipeline.set_state(Gst.State.NULL)
