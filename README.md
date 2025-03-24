@@ -303,5 +303,4 @@ Sometimes after restarting the process or the whole docker container many times,
 Email us at maskcam@bdti.com, and be sure to check out our [independent report on the development of MaskCam](https://bdti.com/maskcam)!
 
 
-python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
 
