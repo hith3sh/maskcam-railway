@@ -117,7 +117,7 @@ class RailTrackProcessor:
                     self.track_votes[track_id] += 1
                 elif label == LABEL_DEFECTIVE:
                     self.track_votes[track_id] -= 1
-                    # Record detection time for defective tracks
+                    # Record detection time for defective tracks -later added
                     if track_id not in self.track_detection_times:
                         self.track_detection_times[track_id] = datetime.now(timezone.utc)
                 # max_votes limit
