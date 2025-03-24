@@ -910,10 +910,16 @@ if __name__ == "__main__":
         input_filename = config["maskcam"]["default-input"]
         print(f"Using input from config file: {input_filename}")
 
+    # Initialize stats queue and create statistics directory
+    stats_queue = mp.Queue()
+    stats_dir = config["maskcam"]["fileserver-hdd-dir"]
+    os.makedirs(stats_dir, exist_ok=True)
+
     sys.exit(
         main(
             config=config,
             input_filename=input_filename,
             output_filename=output_filename,
+            stats_queue=stats_queue,
         )
     )
