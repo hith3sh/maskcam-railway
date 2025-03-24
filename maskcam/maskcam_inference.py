@@ -200,7 +200,12 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer
 
 def sigint_handler(sig, frame):
     # This function is not used if e_external_interrupt is provided
-    print("[red]Ctrl+C pressed. Interrupting inference...[/red]")
+    print("[red]Ctrl+C pressed. Collecting statistics before exit...[/red]")
+    if stats_queue is not None:
+        print(f"Current queue size: {stats_queue.qsize()}")
+        # Give a small delay to ensure all pending statistics are collected
+        time.sleep(1)
+        print(f"Queue size after delay: {stats_queue.qsize()}")
     e_interrupt.set()
 
 
@@ -884,6 +889,10 @@ def main(
             print(f"Queue size before collection: {stats_queue.qsize()}")
             statistics = []
             try:
+                # Give a small delay to ensure all pending statistics are collected
+                time.sleep(1)
+                print(f"Queue size after delay: {stats_queue.qsize()}")
+                
                 while not stats_queue.empty():
                     try:
                         stat = stats_queue.get_nowait()
@@ -895,15 +904,18 @@ def main(
                 
                 print(f"Total statistics collected: {len(statistics)}")
                 
-                # Save statistics to file
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                stats_dir = config["maskcam"]["fileserver-hdd-dir"]
-                stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
-                print(f"Saving statistics to: {stats_file}")
-                
-                with open(stats_file, 'w') as f:
-                    json.dump(statistics, f, indent=2, default=str)
-                print(f"Statistics successfully saved to file")
+                if len(statistics) > 0:
+                    # Save statistics to file
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    stats_dir = config["maskcam"]["fileserver-hdd-dir"]
+                    stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
+                    print(f"Saving statistics to: {stats_file}")
+                    
+                    with open(stats_file, 'w') as f:
+                        json.dump(statistics, f, indent=2, default=str)
+                    print(f"Statistics successfully saved to file")
+                else:
+                    print("[yellow]No statistics were collected during runtime[/yellow]")
             except Exception as e:
                 print(f"Error saving statistics: {str(e)}")
             print("=== Statistics Collection Complete ===\n")
