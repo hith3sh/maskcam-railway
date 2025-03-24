@@ -73,7 +73,7 @@ fileserver-video-duration=35
 fileserver-force-save=0
 fileserver-ram-dir=/dev/shm
 # Use /tmp/* to clean saved videos on system reboot
-fileserver-hdd-dir=/tmp/saved_videos
+fileserver-hdd-dir=/home/lab5/Desktop/statistics
 
 # IP or domain address that this device will show in info messages (logs and web frontend, for streaming and file downloading)
 # Recommended: use env variable MASKCAM_DEVICE_ADDRESS to set this

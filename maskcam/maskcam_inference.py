@@ -519,7 +519,10 @@ def main(
 
     # Create statistics file if stats_queue is provided
     if stats_queue is not None:
-        stats_file = "inference_statistics.json"
+        # Create timestamp for unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        stats_dir = config["maskcam"]["fileserver-hdd-dir"]
+        stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
         print(f"Statistics will be saved to: {stats_file}")
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
@@ -877,6 +880,9 @@ def main(
                     statistics.append(stat)
                 except queue.Empty:
                     break
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(stats_file), exist_ok=True)
             
             # Save statistics to file
             with open(stats_file, 'w') as f:
