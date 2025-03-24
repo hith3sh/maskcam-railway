@@ -9,6 +9,7 @@ import threading
 import multiprocessing as mp
 from rich.console import Console
 from datetime import datetime, timedelta
+import queue
 
 from maskcam.prints import print_run as print
 from maskcam.config import config, print_config_overrides
@@ -121,14 +122,51 @@ def is_alert_condition(statistics, config):
 
 
 def handle_statistics(stats_queue, config, is_live_input):
+    print("\n=== Processing Statistics ===")
+    print(f"Current queue size: {stats_queue.qsize()}")
+    
+    statistics_list = []
+    
     while not stats_queue.empty():
-        statistics = stats_queue.get_nowait()
-
-        if is_live_input:
-            # Alert conditions detection
-            raise_alert = is_alert_condition(statistics, config)
-            if raise_alert:
-                flag_keep_current_files()
+        try:
+            statistics = stats_queue.get_nowait()
+            print(f"Retrieved statistics: {statistics}")
+            statistics_list.append(statistics)
+            
+            if is_live_input:
+                # Alert conditions detection
+                raise_alert = is_alert_condition(statistics, config)
+                if raise_alert:
+                    print("Alert condition met, flagging current files")
+                    flag_keep_current_files()
+        except queue.Empty:
+            print("Queue is empty, breaking loop")
+            break
+        except Exception as e:
+            print(f"Error processing statistics: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+    
+    # Save statistics to JSON file if we have collected any
+    if statistics_list:
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            stats_dir = config["maskcam"]["fileserver-hdd-dir"]
+            stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
+            print(f"Saving statistics to: {stats_file}")
+            
+            with open(stats_file, 'w') as f:
+                json.dump(statistics_list, f, indent=2, default=str)
+            print(f"Statistics successfully saved to file")
+        except Exception as e:
+            print(f"Error saving statistics to JSON: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+    
+    print(f"Queue size after processing: {stats_queue.qsize()}")
+    print("=== Statistics Processing Complete ===\n")
 
 
 def allocate_free_udp_port():

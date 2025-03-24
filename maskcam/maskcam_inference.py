@@ -883,11 +883,9 @@ def main(
         if output_filename is not None:
             print(f"Output file saved: [green bold]{output_filename}[/green bold]")
 
-        # Save statistics at the end
         if stats_queue is not None:
             print(f"\n=== Starting Statistics Collection ===")
             print(f"Queue size before collection: {stats_queue.qsize()}")
-            statistics = []
             try:
                 # Give a small delay to ensure all pending statistics are collected
                 time.sleep(1)
@@ -897,27 +895,13 @@ def main(
                     try:
                         stat = stats_queue.get_nowait()
                         print(f"Retrieved stat from queue: {stat}")
-                        statistics.append(stat)
                     except queue.Empty:
                         print("Queue is empty, breaking loop")
                         break
                 
-                print(f"Total statistics collected: {len(statistics)}")
-                
-                if len(statistics) > 0:
-                    # Save statistics to file
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    stats_dir = config["maskcam"]["fileserver-hdd-dir"]
-                    stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
-                    print(f"Saving statistics to: {stats_file}")
-                    
-                    with open(stats_file, 'w') as f:
-                        json.dump(statistics, f, indent=2, default=str)
-                    print(f"Statistics successfully saved to file")
-                else:
-                    print("[yellow]No statistics were collected during runtime[/yellow]")
+                print("Statistics collection complete")
             except Exception as e:
-                print(f"Error saving statistics: {str(e)}")
+                print(f"Error collecting statistics: {str(e)}")
             print("=== Statistics Collection Complete ===\n")
     except:
         console.print_exception()
