@@ -182,15 +182,17 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer
 
     print(f"Statistics collected: total={tracks_total}, classified={tracks_classified}, non_defective={tracks_non_defective}, defective={tracks_defective}")  # Debug print
 
-    stats_queue.put_nowait(
-        {
-            "tracks_total": tracks_total,
-            "tracks_non_defective": tracks_non_defective,
-            "tracks_defective": tracks_defective,
-            "timestamp": datetime.timestamp(datetime.now(timezone.utc)),
-            "defective_tracks": defective_tracks_info
-        }
-    )
+    stats_data = {
+        "tracks_total": tracks_total,
+        "tracks_non_defective": tracks_non_defective,
+        "tracks_defective": tracks_defective,
+        "timestamp": datetime.timestamp(datetime.now(timezone.utc)),
+        "defective_tracks": defective_tracks_info
+    }
+    
+    print(f"Attempting to put stats in queue: {stats_data}")  # Debug print
+    stats_queue.put_nowait(stats_data)
+    print(f"Queue size after put: {stats_queue.qsize()}")  # Debug print
 
     # Next report timeout
     GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
@@ -878,14 +880,18 @@ def main(
 
         # Save statistics at the end
         if stats_queue is not None:
+            print(f"Starting to collect statistics from queue. Queue size: {stats_queue.qsize()}")  # Debug print
             statistics = []
             while not stats_queue.empty():
                 try:
                     stat = stats_queue.get_nowait()
+                    print(f"Retrieved stat from queue: {stat}")  # Debug print
                     statistics.append(stat)
                 except queue.Empty:
+                    print("Queue is empty, breaking loop")  # Debug print
                     break
             
+            print(f"Total statistics collected: {len(statistics)}")  # Debug print
             
             # Save statistics to file
             with open(stats_file, 'w') as f:
