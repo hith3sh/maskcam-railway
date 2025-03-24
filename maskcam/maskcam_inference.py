@@ -174,17 +174,13 @@ class RailTrackProcessor:
 
 def cb_add_statistics(cb_args): # this function runs independently on a timer
     stats_period, stats_queue, track_processor = cb_args
-    
-    print("\n=== Statistics Callback Started ===")
-    print(f"Current time: {datetime.now(timezone.utc)}")
-    print(f"Current queue size: {stats_queue.qsize()}")
-    
+
     tracks_total, tracks_classified, tracks_non_defective, defective_tracks_info = track_processor.get_instant_statistics(
         refresh=True
     )
     tracks_defective = tracks_classified - tracks_non_defective
 
-    print(f"Statistics collected: total={tracks_total}, classified={tracks_classified}, non_defective={tracks_non_defective}, defective={tracks_defective}")
+    print(f"Statistics collected: total={tracks_total}, classified={tracks_classified}, non_defective={tracks_non_defective}, defective={tracks_defective}")  # Debug print
 
     stats_data = {
         "tracks_total": tracks_total,
@@ -194,14 +190,9 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer
         "defective_tracks": defective_tracks_info
     }
     
-    print(f"Attempting to put stats in queue: {stats_data}")
-    try:
-        stats_queue.put_nowait(stats_data)
-        print(f"Successfully put stats in queue. New queue size: {stats_queue.qsize()}")
-    except Exception as e:
-        print(f"Error putting stats in queue: {str(e)}")
-    
-    print("=== Statistics Callback Completed ===\n")
+    print(f"Attempting to put stats in queue: {stats_data}")  # Debug print
+    stats_queue.put_nowait(stats_data)
+    print(f"Queue size after put: {stats_queue.qsize()}")  # Debug print
 
     # Next report timeout
     GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
@@ -833,13 +824,8 @@ def main(
 
         # Timer to add statistics to queue
         if stats_queue is not None:
-            print("\n=== Initializing Statistics Collection ===")
-            print(f"Statistics period: {stats_period} seconds")
-            print(f"Initial queue size: {stats_queue.qsize()}")
             cb_args = stats_period, stats_queue, track_processor
             GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
-            print("Statistics callback initialized")
-            print("=== Statistics Collection Initialized ===\n")
 
         # Periodic gloop interrupt (see utils.glib_cb_restart)
         t_check = 100
@@ -907,15 +893,13 @@ def main(
                 time.sleep(1)
                 print(f"Queue size after delay: {stats_queue.qsize()}")
                 
-                # Try to get all available statistics
-                while True:
+                while not stats_queue.empty():
                     try:
                         stat = stats_queue.get_nowait()
                         print(f"Retrieved stat from queue: {stat}")
                         statistics.append(stat)
-                        print(f"Current queue size: {stats_queue.qsize()}")
                     except queue.Empty:
-                        print("Queue is empty, no more statistics to collect")
+                        print("Queue is empty, breaking loop")
                         break
                 
                 print(f"Total statistics collected: {len(statistics)}")
@@ -934,9 +918,6 @@ def main(
                     print("[yellow]No statistics were collected during runtime[/yellow]")
             except Exception as e:
                 print(f"Error saving statistics: {str(e)}")
-                print(f"Error type: {type(e)}")
-                import traceback
-                print(f"Traceback: {traceback.format_exc()}")
             print("=== Statistics Collection Complete ===\n")
     except:
         console.print_exception()
