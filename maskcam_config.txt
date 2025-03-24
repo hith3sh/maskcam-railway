@@ -8,7 +8,7 @@ voting-threshold=0.75
 # Smaller detections (in pixels) will be discarded
 min-track-size=8
 # Disable tracker to draw raw detections and set thresholds above
-disable-tracker=1
+disable-tracker=0
 
 [maskcam]
 # Alert conditions

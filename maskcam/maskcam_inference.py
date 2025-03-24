@@ -172,7 +172,7 @@ class RailTrackProcessor:
         return total_tracks, total_classified, total_non_defective, defective_tracks_info
 
 
-def cb_add_statistics(cb_args):
+def cb_add_statistics(cb_args): # this function runs independently on a timer
     stats_period, stats_queue, track_processor = cb_args
 
     tracks_total, tracks_classified, tracks_non_defective, defective_tracks_info = track_processor.get_instant_statistics(
