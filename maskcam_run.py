@@ -121,18 +121,12 @@ def is_alert_condition(statistics, config):
     return is_alert
 
 
-def handle_statistics(stats_queue, config, is_live_input):
-    print("\n=== Processing Statistics ===")
-    print(f"Current queue size: {stats_queue.qsize()}")
-    
-    statistics_list = []
-    
+def handle_statistics(stats_queue, config, is_live_input, all_statistics):    
     while not stats_queue.empty():
         try:
-            statistics = stats_queue.get_nowait()
-            print(f"Retrieved statistics: {statistics}")
-            statistics_list.append(statistics)
-            
+            statistics = stats_queue.get_nowait() # get stats in a non blocking way
+            all_statistics.append(statistics) # add them
+
             if is_live_input:
                 # Alert conditions detection
                 raise_alert = is_alert_condition(statistics, config)
@@ -147,26 +141,6 @@ def handle_statistics(stats_queue, config, is_live_input):
             print(f"Error type: {type(e)}")
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
-    
-    # Save statistics to JSON file if we have collected any
-    if statistics_list:
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            stats_dir = config["maskcam"]["fileserver-hdd-dir"]
-            stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
-            print(f"Saving statistics to: {stats_file}")
-            
-            with open(stats_file, 'w') as f:
-                json.dump(statistics_list, f, indent=2, default=str)
-            print(f"Statistics successfully saved to file")
-        except Exception as e:
-            print(f"Error saving statistics to JSON: {str(e)}")
-            print(f"Error type: {type(e)}")
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")
-    
-    print(f"Queue size after processing: {stats_queue.qsize()}")
-    print("=== Statistics Processing Complete ===\n")
 
 
 def allocate_free_udp_port():
@@ -358,13 +332,14 @@ if __name__ == "__main__":
             config,
             input_filename=input_filename,
             output_filename=output_filename,
-            stats_queue=stats_queue,
+            stats_queue=stats_queue, #created stats queue is passed to inference process
             e_ready=e_inference_ready,
         )
+        all_statistics = [] 
 
         while not e_interrupt.is_set():
             # Send statistics, detect alarm events and request file-saving
-            handle_statistics(stats_queue, config, is_live_input)
+            handle_statistics(stats_queue, config, is_live_input, all_statistics)
 
             # Handle sequential file saving processes, only after inference process is ready
             if e_inference_ready.is_set():
