@@ -10,6 +10,7 @@ import multiprocessing as mp
 from rich.console import Console
 from datetime import datetime, timedelta
 import queue
+import threading
 
 from maskcam.prints import print_run as print
 from maskcam.config import config, print_config_overrides
@@ -50,6 +51,21 @@ P_FILESAVE_PREFIX = "file-save-"
 
 processes_info = {}
 
+def write_statistics_async(stats_dir, stats_file, data):
+    try:
+        stats_file = 'statistics.json'
+        stats_file = os.path.join(stats_dir, stats_file)
+
+        if os.path.exists(stats_file):
+            with open(stats_file, 'r') as f:
+                existing_data = json.load(f)
+        else:
+            existing_data = []
+        existing_data.extend(data)
+        with open(stats_file, 'w') as f:
+            json.dump(existing_data, f, indent=2, default=str)
+    except Exception as e:
+        print(f"Async write error: {str(e)}")
 
 def sigint_handler(sig, frame):
     print("[red]Ctrl+C pressed. Interrupting all processes...[/red]")
@@ -336,10 +352,23 @@ if __name__ == "__main__":
             e_ready=e_inference_ready,
         )
         all_statistics = [] 
+        stats_period = int(config["maskcam"]["statistics-period"])  # 15 seconds
+        stats_dir = int(config["maskcam"]["statistics-directory"])  # 15 seconds
+        last_write_time = datetime.now()  # Track the last write time
 
         while not e_interrupt.is_set():
             # Send statistics, detect alarm events and request file-saving
             handle_statistics(stats_queue, config, is_live_input, all_statistics)
+            current_time = datetime.now()
+
+            if (current_time - last_write_time).total_seconds() >= stats_period:
+                if all_statistics:
+                    threading.Thread(
+                        target=write_statistics_async,
+                        args=(stats_dir, all_statistics.copy()),
+                    ).start()
+                    all_statistics.clear()
+                    last_write_time = current_time
 
             # Handle sequential file saving processes, only after inference process is ready
             if e_inference_ready.is_set():
