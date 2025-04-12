@@ -353,7 +353,7 @@ if __name__ == "__main__":
         )
         all_statistics = [] 
         stats_period = int(config["maskcam"]["statistics-period"])  # 15 seconds
-        stats_dir = int(config["maskcam"]["statistics-directory"])  # 15 seconds
+        stats_dir = config["maskcam"]["statistics-directory"]  # home directory
         last_write_time = datetime.now()  # Track the last write time
 
         while not e_interrupt.is_set():

@@ -21,6 +21,7 @@ alert-max-total-tracks=10
 
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
 statistics-period=15
+statistics-directory='/home/lab5/Desktop'
 
 # Time (in seconds) to restart statistics (and the whole Deepstream inference process)
 # Set to 0 to disable / 24hs = 86400 seconds
