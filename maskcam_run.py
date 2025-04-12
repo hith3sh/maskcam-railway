@@ -53,7 +53,7 @@ processes_info = {}
 
 def write_statistics_async(stats_dir, data):
     try:
-        stats_file = 'statistics.json'
+        stats_file = 'inference_statistics.json'
         stats_file = os.path.join(stats_dir, stats_file)
 
         if os.path.exists(stats_file):
