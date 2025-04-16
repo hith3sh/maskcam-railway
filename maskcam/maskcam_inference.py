@@ -106,26 +106,26 @@ class RailTrackProcessor:
         box_height = box_points[1][1] - box_points[0][1]
         return min(box_width, box_height) >= self.min_track_size and score >= self.th_detection
 
-def add_detection(self, track_id, label, score):
-    # This function is called from cb_buffer_probe everytime it detects an object
-    with self.stats_lock:
-        self.current_tracks.add(track_id)
-        if track_id not in self.track_votes:
-            self.track_votes[track_id] = 0
-        previous_votes = self.track_votes[track_id]
-        if score > self.th_vote:
-            if label == LABEL_NON_DEFECTIVE:
-                self.track_votes[track_id] += 1
-            elif label == LABEL_DEFECTIVE:
-                self.track_votes[track_id] -= 1
-                # captures the moment the track is confidently classified as defective                
-                if previous_votes > -self.min_votes and self.track_votes[track_id] <= -self.min_votes:
-                    if track_id not in self.track_detection_times:
-                        self.track_detection_times[track_id] = datetime.now(timezone.utc)
-            # max_votes limit
-            self.track_votes[track_id] = np.clip(
-                self.track_votes[track_id], -self.max_votes, self.max_votes
-            )
+    def add_detection(self, track_id, label, score):
+        # This function is called from cb_buffer_probe everytime it detects an object
+        with self.stats_lock:
+            self.current_tracks.add(track_id)
+            if track_id not in self.track_votes:
+                self.track_votes[track_id] = 0
+            previous_votes = self.track_votes[track_id]
+            if score > self.th_vote:
+                if label == LABEL_NON_DEFECTIVE:
+                    self.track_votes[track_id] += 1
+                elif label == LABEL_DEFECTIVE:
+                    self.track_votes[track_id] -= 1
+                    # captures the moment the track is confidently classified as defective                
+                    if previous_votes > -self.min_votes and self.track_votes[track_id] <= -self.min_votes:
+                        if track_id not in self.track_detection_times:
+                            self.track_detection_times[track_id] = datetime.now(timezone.utc)
+                # max_votes limit
+                self.track_votes[track_id] = np.clip(
+                    self.track_votes[track_id], -self.max_votes, self.max_votes
+                )
 
     def get_track_label(self, track_id):
         track_votes = self.track_votes[track_id]
