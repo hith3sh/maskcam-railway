@@ -438,6 +438,24 @@ if __name__ == "__main__":
     except:  # noqa
         console.print_exception()
 
+    # Terminate inference process first to stop adding to stats_queue
+    if process_inference is not None and process_inference.is_alive():
+        terminate_process(P_INFERENCE, process_inference, e_interrupt_inference)
+
+    # Process any remaining statistics from the queue
+    while not stats_queue.empty():
+        try:
+            statistics = stats_queue.get_nowait()
+            all_statistics.append(statistics)
+        except queue.Empty:
+            break
+
+    # Write final statistics to JSON file
+    if all_statistics:
+        write_statistics_async(stats_dir, all_statistics)
+        print("Final statistics written to JSON file.")
+        all_statistics.clear()
+
     # Terminate all running processes, avoid breaking on any exception
     for active_file_process in active_filesave_processes:
         try:
