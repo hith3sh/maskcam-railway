@@ -884,26 +884,6 @@ def main(
         if output_filename is not None:
             print(f"Output file saved: [green bold]{output_filename}[/green bold]")
 
-        if stats_queue is not None:
-            print(f"\n=== Starting Statistics Collection ===")
-            print(f"Queue size before collection: {stats_queue.qsize()}")
-            try:
-                # Give a small delay to ensure all pending statistics are collected
-                time.sleep(1)
-                print(f"Queue size after delay: {stats_queue.qsize()}")
-                
-                while not stats_queue.empty():
-                    try:
-                        stat = stats_queue.get_nowait()
-                        print(f"Retrieved stat from queue: {stat}")
-                    except queue.Empty:
-                        print("Queue is empty, breaking loop")
-                        break
-                
-                print("Statistics collection complete")
-            except Exception as e:
-                print(f"Error collecting statistics: {str(e)}")
-            print("=== Statistics Collection Complete ===\n")
     except:
         console.print_exception()
         pipeline.set_state(Gst.State.NULL)

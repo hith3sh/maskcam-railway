@@ -137,7 +137,7 @@ def is_alert_condition(statistics, config):
     print(f"[yellow]ALERT condition: {is_alert}[/yellow]")
     return is_alert
 
-
+# handle_statistics gets called every 0.1 seconds
 def handle_statistics(stats_queue, config, is_live_input, all_statistics):    
     while not stats_queue.empty():
         try:
@@ -352,6 +352,7 @@ if __name__ == "__main__":
             stats_queue=stats_queue, #created stats queue is passed to inference process
             e_ready=e_inference_ready,
         )
+
         all_statistics = [] 
         stats_period = int(config["maskcam"]["statistics-period"])  # 15 seconds
         stats_dir = config["maskcam"]["statistics-directory"]  # home directory
@@ -359,7 +360,7 @@ if __name__ == "__main__":
 
         while not e_interrupt.is_set():
             # Send statistics, detect alarm events and request file-saving
-            handle_statistics(stats_queue, config, is_live_input, all_statistics)
+            #handle_statistics(stats_queue, config, is_live_input, all_statistics) ------------------
             current_time = datetime.now()
 
             if (current_time - last_write_time).total_seconds() >= stats_period:
@@ -438,7 +439,6 @@ if __name__ == "__main__":
     except:  # noqa
         console.print_exception()
 
-    print('Terminating inference process--------------------------------')
     # Terminate inference process first to stop adding to stats_queue
     if process_inference is not None and process_inference.is_alive():
         terminate_process(P_INFERENCE, process_inference, e_interrupt_inference)
