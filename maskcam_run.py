@@ -438,6 +438,7 @@ if __name__ == "__main__":
     except:  # noqa
         console.print_exception()
 
+    print('Terminating inference process--------------------------------')
     # Terminate inference process first to stop adding to stats_queue
     if process_inference is not None and process_inference.is_alive():
         terminate_process(P_INFERENCE, process_inference, e_interrupt_inference)
