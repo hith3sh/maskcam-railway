@@ -309,7 +309,6 @@ def cb_buffer_probe(pad, info, cb_args):
                         data=det_data,
                     )
                 )
-                print(f"Valid detection added: {det_data}")  # Debug print
             try:
                 l_obj = l_obj.next
             except StopIteration:
@@ -526,7 +525,6 @@ def main(
 
     codec = config["maskcam"]["codec"]
     stats_period = int(config["maskcam"]["statistics-period"])
-    print(f"Statistics period: {stats_period} seconds")
 
     # Create statistics file if stats_queue is provided
     if stats_queue is not None:

@@ -359,10 +359,12 @@ if __name__ == "__main__":
         last_write_time = datetime.now()  # Track the last write time
 
         while not e_interrupt.is_set():
-            # Send statistics, detect alarm events and request file-saving
-            #handle_statistics(stats_queue, config, is_live_input, all_statistics) ------------------
+            # handle_statistics gets called 0.1 seconds to check if there are any stats in the stats_queue
+            # Retrieves statistics from stats_queue and appends them to all_statistics,
+            handle_statistics(stats_queue, config, is_live_input, all_statistics)
             current_time = datetime.now()
-
+            
+            # Write statistics to JSON file every 15 seconds
             if (current_time - last_write_time).total_seconds() >= stats_period:
                 if all_statistics:
                     threading.Thread(
