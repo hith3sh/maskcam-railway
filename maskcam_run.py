@@ -62,7 +62,7 @@ def write_statistics_async(stats_dir, data):
         else:
             existing_data = []
         existing_data.extend(data)
-        print('[Writing] -  writing to the json file')
+        print('Writing statistics to the json file')
         with open(stats_file, 'w') as f:
             json.dump(existing_data, f, indent=2, default=str)
     except Exception as e:
