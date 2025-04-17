@@ -293,7 +293,7 @@ def cb_buffer_probe(pad, info, cb_args):
             obj_meta_list.append(obj_meta)
             obj_meta.rect_params.border_color.set(0.0, 0.0, 1.0, 0.0)
             box = obj_meta.rect_params
-            print(f"Detection: {obj_meta.obj_label} | Confidence: {obj_meta.confidence}")  # Debug print
+            #print(f"Detection: {obj_meta.obj_label} | Confidence: {obj_meta.confidence}")  # Debug print
 
             box_points = (
                 (box.left, box.top),
