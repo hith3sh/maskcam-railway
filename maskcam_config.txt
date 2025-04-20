@@ -4,20 +4,13 @@
 # Detections with score below this threshold will be discarded
 detection-threshold=0.1
 # Only vote defective/non-defective when detection score is above this
-voting-threshold=0.75
+voting-threshold=0.1
 # Smaller detections (in pixels) will be discarded
 min-track-size=8
 disable-tracker=0
 
-[maskcam]
-# Alert conditions
-# Minimum tracks to even calculate defective-fraction
-alert-min-visible-tracks=1
-# More than this fraction of defective tracks will raise an alarm
-alert-defective-fraction=0.25
-# More than this tracks detected will raise alarm despite defective-fraction
-alert-max-total-tracks=10
 
+[maskcam]
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
 statistics-period=5
 statistics-to-json-period=60
@@ -36,8 +29,8 @@ inference-log-interval=300
 default-input=v4l2:///dev/video0
 
 # Output/streaming video resolution. 1024x576 keeps 4k aspect ratio of 1.777
-output-video-width=1024
-output-video-height=576
+output-video-width=640
+output-video-height=480
 
 # Run utils/gst_capabilities.sh and find video/x-raw entries
 camera-framerate=30
@@ -86,10 +79,10 @@ net-scale-factor=0.0039215697906911373
 model-color-format=0
 
 # YOLOV11
-onnx-file=yolov11-nano-nighttime/yolov11-weights/yolov11n.onnx
-model-engine-file=yolov11-nano-nighttime/yolov11-weights/model_b1_gpu0_fp16.engine
-labelfile-path=yolov11-nano-nighttime/yolov11-weights/labels.txt
-custom-lib-path=yolov11-nano-nighttime/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
+onnx-file=yolov11-nano/yolov11-weights/yolov11n.onnx
+model-engine-file=yolov11-nano/yolov11-weights/model_b1_gpu0_fp16.engine
+labelfile-path=yolov11-nano/yolov11-weights/labels.txt
+custom-lib-path=yolov11-nano/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
 parse-bbox-func-name=NvDsInferParseYolo
 engine-create-func-name=NvDsInferYoloCudaEngineGet
 

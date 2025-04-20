@@ -2,6 +2,8 @@ gst-launch-1.0 v4l2src device=/dev/video0 ! image/jpeg,width=640,height=480,fram
 
 python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/railway_fault640_640.mp4
 
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fastners_twice.mp4
+
 python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fastner_clips_at_nighttime.mp4
 
 python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts_at_nighttime.mp4
