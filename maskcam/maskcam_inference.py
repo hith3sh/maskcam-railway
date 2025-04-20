@@ -519,9 +519,10 @@ def main(
 
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
+    # Nice for h264@1024x576: 4000000
     output_width = int(config["maskcam"]["output-video-width"])
     output_height = int(config["maskcam"]["output-video-height"])
-    output_bitrate = 6000000  # Nice for h264@1024x576: 4000000
+    output_bitrate = 1000000 # 1Mbps
 
     # Two types of camera supported: USB or Raspi
     usbcam_input = USBCAM_PROTOCOL in input_filename
