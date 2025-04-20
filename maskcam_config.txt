@@ -20,6 +20,7 @@ alert-max-total-tracks=10
 
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
 statistics-period=60
+get_stat_period=15
 statistics-directory=/home/lab5/Desktop/inference_statistics/
 
 # Time (in seconds) to restart statistics (and the whole Deepstream inference process)
@@ -99,7 +100,7 @@ batch-size=1
 network-mode=2
 
 # no of frames to skip between two inference operations
-interval=2
+interval=1
 
 gie-unique-id=1
 process-mode=1
