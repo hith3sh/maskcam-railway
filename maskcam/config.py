@@ -24,6 +24,7 @@ ENV_CONFIG_OVERRIDES = (
     ("MASKCAM_ALERT_MAX_TOTAL_TRACKS", ("maskcam", "alert-max-total-tracks")),
     ("MASKCAM_ALERT_DEFECTIVE_FRACTION", ("maskcam", "alert-defective-fraction")),
     ("MASKCAM_STATISTICS_PERIOD", ("maskcam", "statistics-period")),
+    ("MASKCAM_STATISTICS_TO_JSON_PERIOD", ("maskcam", "statistics-to-json-period")),
     ("MASKCAM_STATISTICS_DIRECTORY", ("maskcam", "statistics-directory")),
     ("MASKCAM_TIMEOUT_INFERENCE_RESTART", ("maskcam", "timeout-inference-restart")),
     ("MASKCAM_CAMERA_FRAMERATE", ("maskcam", "camera-framerate")),

@@ -352,7 +352,7 @@ if __name__ == "__main__":
         )
 
         all_statistics = [] 
-        stats_period = int(config["maskcam"]["statistics-period"])  # 15 seconds
+        statistics_saving_period = int(config["maskcam"]["statistics-to-json-period"])  # 60 seconds
         stats_dir = config["maskcam"]["statistics-directory"]  # home directory
         last_write_time = datetime.now()  # Track the last write time
 
@@ -370,8 +370,8 @@ if __name__ == "__main__":
             handle_statistics(stats_queue, config, is_live_input, all_statistics)
             current_time = datetime.now()
             
-            # Write statistics to JSON file every 15 seconds
-            if (current_time - last_write_time).total_seconds() >= stats_period:
+            # Write statistics to JSON file every 60 seconds
+            if (current_time - last_write_time).total_seconds() >= statistics_saving_period:
                 if all_statistics:
                     threading.Thread(
                         target=write_statistics_async,

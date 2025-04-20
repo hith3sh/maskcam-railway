@@ -19,8 +19,8 @@ alert-defective-fraction=0.25
 alert-max-total-tracks=10
 
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
-statistics-period=60
-get_stat_period=15
+statistics-period=15
+statistics-to-json-period=60
 statistics-directory=/home/lab5/Desktop/inference_statistics/
 
 # Time (in seconds) to restart statistics (and the whole Deepstream inference process)

@@ -140,10 +140,12 @@ class RailTrackProcessor:
     def get_instant_statistics(self, refresh=True):
         """
         Get statistics only including tracks that appeared on camera since last refresh
+        Refresh is always TRUE
         """
-        instant_stats = self.get_statistics(filter_ids=self.current_tracks)
+        instant_stats = self.get_statistics(filter_ids=self.current_tracks) # passing old current_tracks
         if refresh:
             with self.stats_lock:
+                # if refreshed new current_tracks is created
                 self.current_tracks = set()
         return instant_stats
 
@@ -175,7 +177,7 @@ class RailTrackProcessor:
         return total_tracks, total_classified, total_non_defective, defective_tracks_info
 
 
-def cb_add_statistics(cb_args): # this function runs independently on a timer -60 seconds
+def cb_add_statistics(cb_args): # this function runs independently on a timer -15 seconds
     stats_period, stats_queue, track_processor = cb_args
 
     tracks_total, tracks_classified, tracks_non_defective, defective_tracks_info = track_processor.get_instant_statistics(
@@ -522,7 +524,7 @@ def main(
     load_udp_ports_filesaving(config, udp_ports)
 
     codec = config["maskcam"]["codec"]
-    stats_period = int(config["maskcam"]["statistics-period"])
+    stats_period = int(config["maskcam"]["statistics-period"]) #15 sec
 
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
