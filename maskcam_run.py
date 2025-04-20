@@ -428,7 +428,7 @@ if __name__ == "__main__":
                 else:
                     print("[red]Command not recognized[/red]", error=True)
             else:
-                e_interrupt.wait(timeout=0.1)
+                e_interrupt.wait(timeout=15)
 
             # Routine check: finish loop if the inference process is dead
             if not process_inference.is_alive():
@@ -456,6 +456,7 @@ if __name__ == "__main__":
         try:
             statistics = stats_queue.get_nowait()
             all_statistics.append(statistics)
+            print('-----Stats queue is not empty:', all_statistics)
         except queue.Empty:
             break
 

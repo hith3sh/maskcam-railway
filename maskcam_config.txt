@@ -19,7 +19,7 @@ alert-defective-fraction=0.25
 alert-max-total-tracks=10
 
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
-statistics-period=15
+statistics-period=5
 statistics-to-json-period=60
 statistics-directory=/home/lab5/Desktop/inference_statistics/
 

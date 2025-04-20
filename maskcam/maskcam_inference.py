@@ -170,7 +170,7 @@ class RailTrackProcessor:
         return defective_tracks_info
 
 
-def cb_add_statistics(cb_args): # this function runs independently on a timer -15 seconds
+def cb_add_statistics(cb_args): # this function runs independently on a timer -5 seconds
     stats_period, stats_queue, track_processor = cb_args
 
     defective_tracks_info = track_processor.get_instant_statistics(
@@ -178,14 +178,13 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer -1
     )
 
     print(f"No.of Defective tracks detected: {len(defective_tracks_info)}")  # Debug print
-
-    stats_data = {
-        "defective_tracks": defective_tracks_info
-    }
     
-    print(f"Attempting to put stats in queue: {stats_data}")  # Debug print
-    stats_queue.put_nowait(stats_data)
-    print(f"Queue size after put: {stats_queue.qsize()}")  # Debug print
+    # if [] -> dont add to stats_queue
+    if defective_tracks_info:
+        stats_data = {"defective_tracks": defective_tracks_info}
+    
+        stats_queue.put_nowait(stats_data)
+        print(f"stats_queue updated, Queue size after put: {stats_queue.qsize()}")  # Debug print
 
     # Next report timeout
     GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
