@@ -526,15 +526,6 @@ def main(
     codec = config["maskcam"]["codec"]
     stats_period = int(config["maskcam"]["statistics-period"])
 
-    # Create statistics file if stats_queue is provided
-    if stats_queue is not None:
-        # Create timestamp for unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        stats_dir = config["maskcam"]["fileserver-hdd-dir"]
-        stats_file = os.path.join(stats_dir, f"inference_statistics_{timestamp}.json")
-        print(f"Statistics will be saved to: {stats_file}")
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(stats_file), exist_ok=True)
 
     # Original: 1920x1080, bdti_resized: 1024x576, yolo-input: 1024x608
     output_width = int(config["maskcam"]["output-video-width"])

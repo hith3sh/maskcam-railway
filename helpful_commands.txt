@@ -1,0 +1,8 @@
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/railway_fault640_640.mp4
+
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fastner_clips_at_nighttime.mp4
+
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts_at_nighttime.mp4
+
+python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
+
