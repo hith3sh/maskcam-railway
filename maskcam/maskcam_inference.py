@@ -157,35 +157,27 @@ class RailTrackProcessor:
                 }
             else:
                 filtered_tracks = self.track_votes
-            #total_tracks = len(filtered_tracks)
-            #total_classified = 0
-            #total_non_defective = 0
             
-            defective_tracks_info = []  # New: Store info about defective tracks
+            defective_tracks_info = []  # Store info about defective tracks
             for track_id in filtered_tracks:
                 track_votes = filtered_tracks[track_id]
-                if abs(track_votes) >= self.min_votes:
-                    total_classified += 1
-                    if track_votes > 0:
-                        total_non_defective += 1
-                    elif track_id in self.track_detection_times:
-                        defective_tracks_info.append({
-                            'track_id': track_id,
-                            'detection_time': self.track_detection_times[track_id],
-                            'confidence': abs(track_votes) / self.max_votes
-                        })
-        return total_tracks, total_classified, total_non_defective, defective_tracks_info
+                if track_votes <= -self.min_votes and track_id in self.track_detection_times:
+                    defective_tracks_info.append({
+                        'track_id': track_id,
+                        'detection_time': self.track_detection_times[track_id].isoformat(),
+                        'confidence': abs(track_votes) / self.max_votes
+                    })
+        return defective_tracks_info
 
 
 def cb_add_statistics(cb_args): # this function runs independently on a timer -15 seconds
     stats_period, stats_queue, track_processor = cb_args
 
-    tracks_total, tracks_classified, tracks_non_defective, defective_tracks_info = track_processor.get_instant_statistics(
+    defective_tracks_info = track_processor.get_instant_statistics(
         refresh=True
     )
-    #tracks_defective = tracks_classified - tracks_non_defective
 
-    print(f"defective tracks detected: {defective_tracks_info}")  # Debug print
+    print(f"No.of Defective tracks detected: {len(defective_tracks_info)}")  # Debug print
 
     stats_data = {
         "defective_tracks": defective_tracks_info

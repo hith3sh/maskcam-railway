@@ -142,12 +142,12 @@ def handle_statistics(stats_queue, config, is_live_input, all_statistics):
             statistics = stats_queue.get_nowait() # get stats in a non blocking way
             all_statistics.append(statistics) # add them
 
-            if is_live_input:
-                # Alert conditions detection
-                raise_alert = is_alert_condition(statistics, config)
-                if raise_alert:
-                    print("Alert condition met, flagging current files")
-                    flag_keep_current_files()
+            # if is_live_input:
+            #     # Alert conditions detection
+            #     raise_alert = is_alert_condition(statistics, config)
+            #     if raise_alert:
+            #         print("Alert condition met, flagging current files")
+            #         flag_keep_current_files()
         except queue.Empty:
             print("Queue is empty, breaking loop")
             break
