@@ -1,13 +1,25 @@
 from .config import config
 from gi.repository import GLib
+import socket
 
 ADDRESS_UNKNOWN_LABEL = "<device-address-not-configured>"
 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 def get_ip_address():
     result_value = config["maskcam"]["device-address"].strip()
     if not result_value or result_value == "0":
-        result_value = ADDRESS_UNKNOWN_LABEL
+        result_value = get_local_ip()        
     return result_value
 
 

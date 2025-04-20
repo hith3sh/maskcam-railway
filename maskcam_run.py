@@ -51,11 +51,9 @@ P_FILESAVE_PREFIX = "file-save-"
 
 processes_info = {}
 
-def write_statistics_async(stats_dir, data):
+def write_statistics_async(stats_dir, data, stats_file_name):
     try:
-        stats_file = 'inference_statistics.json'
-        stats_file = os.path.join(stats_dir, stats_file)
-
+        stats_file = os.path.join(stats_dir, stats_file_name)
         if os.path.exists(stats_file):
             with open(stats_file, 'r') as f:
                 existing_data = json.load(f)
@@ -358,6 +356,14 @@ if __name__ == "__main__":
         stats_dir = config["maskcam"]["statistics-directory"]  # home directory
         last_write_time = datetime.now()  # Track the last write time
 
+
+        timestamp_for_json_file = last_write_time.strftime("%Y%m%d_%H%M%S")
+        stats_file_name = os.path.join(stats_dir, f"inference_statistics_{timestamp_for_json_file}.json")
+        print(f"Statistics will be saved to: {stats_file_name}")
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(stats_file_name), exist_ok=True)
+
+
         while not e_interrupt.is_set():
             # handle_statistics gets called 0.1 seconds to check if there are any stats in the stats_queue
             # Retrieves statistics from stats_queue and appends them to all_statistics,
@@ -369,7 +375,7 @@ if __name__ == "__main__":
                 if all_statistics:
                     threading.Thread(
                         target=write_statistics_async,
-                        args=(stats_dir, all_statistics.copy()),
+                        args=(stats_dir, all_statistics.copy(), stats_file_name),
                     ).start()
                     all_statistics.clear()
                     last_write_time = current_time
@@ -455,7 +461,7 @@ if __name__ == "__main__":
 
     # Write final statistics to JSON file
     if all_statistics:
-        write_statistics_async(stats_dir, all_statistics)
+        write_statistics_async(stats_dir, all_statistics, stats_file_name)
         print("Final statistics written to JSON file.")
         all_statistics.clear()
 
