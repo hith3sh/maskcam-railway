@@ -14,6 +14,12 @@ import multiprocessing as mp
 from rich.console import Console
 from datetime import datetime, timezone
 import json
+import cv2
+
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(33, GPIO.OUT)
+my_pwm = GPIO.PWM(33, 100)
 
 
 gi.require_version("Gst", "1.0")
@@ -374,6 +380,32 @@ def cb_buffer_probe(pad, info, cb_args):
             # print(pyds.get_string(py_nvosd_text_params.display_text))
             # print(".", end="", flush=True)
         # print("")
+
+        # ------------------ Light Intensity Processing ------------------
+
+        n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
+        
+        # Convert to BGR for OpenCV processing
+        frame = np.array(n_frame, copy=True, order='C')
+
+        # Convert to grayscale
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Calculate the mean pixel value
+        mean_value = np.mean(gray_frame)
+        x = max(0, min(100, (mean_value / 255) * 100))
+        x = 100 - x
+        if x < 60:
+            x = 0
+
+        # x=0 -> no light
+        # x=100 -> max light
+        my_pwm.ChangeDutyCycle(x)
+
+        print(f"Frame Number: {frame_number}, X Value: {x}")
+
+        # ----------------------------------------------------------------
+
         if not frame_number % FRAMES_LOG_INTERVAL:
             print(f"Processed {frame_number} frames...")
 
