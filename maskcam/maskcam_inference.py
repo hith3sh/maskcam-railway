@@ -401,9 +401,6 @@ def cb_buffer_probe(pad, info, cb_args):
         # x=0 -> no light
         # x=100 -> max light
         my_pwm.ChangeDutyCycle(x)
-
-        print(f"Frame Number: {frame_number}, X Value: {x}")
-
         # ----------------------------------------------------------------
 
         if not frame_number % FRAMES_LOG_INTERVAL:
