@@ -18,9 +18,9 @@ import cv2
 
 import RPi.GPIO as GPIO
 #GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(33, GPIO.OUT)
-my_pwm = GPIO.PWM(33, 100)
+# GPIO.setmode(GPIO.BOARD)
+# GPIO.setup(33, GPIO.OUT)
+# my_pwm = GPIO.PWM(33, 100)
 
 
 gi.require_version("Gst", "1.0")
@@ -401,7 +401,7 @@ def cb_buffer_probe(pad, info, cb_args):
 
         # x=0 -> no light
         # x=100 -> max light
-        my_pwm.ChangeDutyCycle(x)
+        #my_pwm.ChangeDutyCycle(x)
         # ----------------------------------------------------------------
 
         if not frame_number % FRAMES_LOG_INTERVAL:
@@ -864,7 +864,7 @@ def main(
                     show_troubleshooting()
                     running = False
             if e_interrupt.is_set():
-                GPIO.cleanup()
+                # GPIO.cleanup()
                 # Send EOS to container to generate a valid mp4 file
                 if output_filename is not None:
                     container.send_event(Gst.Event.new_eos())
