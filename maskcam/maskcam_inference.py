@@ -17,7 +17,7 @@ import json
 import cv2
 
 import RPi.GPIO as GPIO
-GPIO.setwarnings(False)
+#GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(33, GPIO.OUT)
 my_pwm = GPIO.PWM(33, 100)
