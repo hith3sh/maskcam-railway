@@ -864,6 +864,7 @@ def main(
                     show_troubleshooting()
                     running = False
             if e_interrupt.is_set():
+                GPIO.cleanup()
                 # Send EOS to container to generate a valid mp4 file
                 if output_filename is not None:
                     container.send_event(Gst.Event.new_eos())
