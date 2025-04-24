@@ -320,7 +320,6 @@ def cb_buffer_probe(pad, info, cb_args):
             except StopIteration:
                 break
 
-            print('detected obj', obj_meta)
 
         # Remove all object meta to avoid drawing. Do this outside while since we're modifying list
         for obj_meta in obj_meta_list:
