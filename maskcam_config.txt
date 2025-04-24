@@ -6,7 +6,7 @@ detection-threshold=0.1
 # Only vote defective/non-defective when detection score is above this
 voting-threshold=0.1
 # Smaller detections (in pixels) will be discarded
-min-track-size=8
+min-track-size=4
 disable-tracker=0
 
 
@@ -79,10 +79,11 @@ net-scale-factor=0.0039215697906911373
 model-color-format=0
 
 # YOLOV11
-onnx-file=yolov11-nano-nighttime/yolov11-weights/yolov11n.onnx
-model-engine-file=yolov11-nano-nighttime/yolov11-weights/model_b1_gpu0_fp16.engine
-labelfile-path=yolov11-nano-nighttime/yolov11-weights/labels.txt
-custom-lib-path=yolov11-nano-nighttime/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
+onnx-file=yolov11-nano/yolov11-weights/yolov11n.onnx
+model-engine-file=yolov11-nano/yolov11-weights/model_b1_gpu0_fp16.engine
+labelfile-path=yolov11-nano/yolov11-weights/labels.txt
+custom-lib-path=yolov11-nano/nvdsinfer_custom_impl_Yolo/libnvdsinfer_custom_impl_Yolo.so
+
 parse-bbox-func-name=NvDsInferParseYolo
 engine-create-func-name=NvDsInferYoloCudaEngineGet
 
