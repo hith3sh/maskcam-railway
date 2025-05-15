@@ -127,13 +127,3 @@ xkit==0.0.0
 youtube_dl==2018.3.14
 zipp==3.6.0
 zope.interface==4.3.2
-terminaltables
-visdom
-tqdm
-tensorboardx
-easydict
-torchvision>=0.3.0
-munkres
-timm==0.1.20
-natsort
-opendr
