@@ -48,7 +48,7 @@ macaroonbakery==1.1.3
 Mako==1.0.7
 MarkupSafe==1.0
 matplotlib==2.1.1
-norfair==0.1.8 --no-deps
+norfair==0.1.8
 numpy==1.19.4
 oauth==1.0.1
 oauthlib==2.0.6
