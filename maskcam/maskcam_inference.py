@@ -196,7 +196,7 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer -5
     
     # if [] -> dont add to stats_queue
     if defective_tracks_info:
-        stats_data = {"defective_tracks": defective_tracks_info}
+        stats_data = defective_tracks_info
     
         stats_queue.put_nowait(stats_data)
         print(f"stats_queue updated, Queue size after put: {stats_queue.qsize()}")  # Debug print
@@ -442,7 +442,6 @@ def cb_newpad(decodebin, decoder_src_pad, data):
         # Link the decodebin pad only if decodebin has picked nvidia
         # decoder plugin nvdec_*. We do this by checking if the pad caps contain
         # NVMM memory features.
-        print("features=", features)
         if features.contains("memory:NVMM"):
             # Get the source bin ghost pad
             bin_ghost_pad = source_bin.get_static_pad("src")

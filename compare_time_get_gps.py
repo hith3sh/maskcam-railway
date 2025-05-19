@@ -1,6 +1,34 @@
 import json
 from datetime import datetime
 from dateutil import parser as date_parser
+import os
+import re
+
+stats_dir =  "/home/lab5/Desktop/inference_statistics"
+
+def find_closest_stats_file(stats_dir):
+    pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
+    now = datetime.now()
+
+    closest_file = None
+    smallest_diff = None
+
+    for filename in os.listdir(stats_dir):
+        match = pattern.match(filename)
+        if match:
+            date_str, time_str = match.groups()
+            file_time_str = date_str + time_str
+            try:
+                file_datetime = datetime.strptime(file_time_str, "%Y%m%d%H%M%S")
+            except ValueError:
+                continue
+
+            time_diff = abs((now - file_datetime).total_seconds())
+            if smallest_diff is None or time_diff < smallest_diff:
+                smallest_diff = time_diff
+                closest_file = filename
+
+    return closest_file
 
 # Load ESP32 GPS data
 def load_gps_data(file_path):
@@ -37,8 +65,11 @@ def find_nearest_gps(detection_time, gps_data):
 
 # Main comparison logic
 def main():
-    gps_data = load_gps_data('esp32_data.txt')
-    defective_tracks = load_defective_tracks('inference_statistics.json')
+    #gps_data = load_gps_data('esp32_data.txt')
+    file_name = find_closest_stats_file(stats_dir)
+    file_path = os.path.join(stats_dir, file_name)
+    defective_tracks = load_defective_tracks(file_path)
+    
 
     for track in defective_tracks:
         track_id = track['track_id']
