@@ -456,7 +456,7 @@ if __name__ == "__main__":
         try:
             statistics = stats_queue.get_nowait()
             all_statistics.append(statistics)
-            print('-----Stats queue is not empty:', all_statistics)
+            #print('-----Stats queue is not empty:', all_statistics)
         except queue.Empty:
             break
 

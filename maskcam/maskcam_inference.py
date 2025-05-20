@@ -199,7 +199,7 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer -5
         stats_data = defective_tracks_info
     
         stats_queue.put_nowait(stats_data)
-        print(f"stats_queue updated, Queue size after put: {stats_queue.qsize()}")  # Debug print
+        #print(f"stats_queue updated, Queue size after put: {stats_queue.qsize()}")  # Debug print
 
     # Next report timeout
     GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
