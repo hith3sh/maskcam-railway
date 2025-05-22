@@ -5,8 +5,11 @@ import os
 import re
 
 stats_dir =  "/home/lab5/Desktop/inference_statistics"
+gps_dir =  "/home/lab5/Desktop/gps_values"
+stats_pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
+gps_pattern = re.compile(r"esp32_gps_(\d{8})_(\d{6})\.txt")
 
-def find_closest_stats_file(stats_dir):
+def find_closest_file(stats_dir, pattern):
     pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
     now = datetime.now()
 
@@ -65,8 +68,13 @@ def find_nearest_gps(detection_time, gps_data):
 
 # Main comparison logic
 def main():
-    #gps_data = load_gps_data('esp32_data.txt')
-    file_name = find_closest_stats_file(stats_dir)
+    # gps data file
+    gps_txt_file = find_closest_file(stats_dir, gps_pattern)
+    gps_txt_file_path = os.path.join(gps_dir, gps_txt_file)
+    gps_data = load_gps_data(gps_txt_file_path)
+
+    #inference stats file
+    file_name = find_closest_file(stats_dir, stats_pattern)
     file_path = os.path.join(stats_dir, file_name)
     defective_tracks = load_defective_tracks(file_path)
     
