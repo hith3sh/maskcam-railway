@@ -66,7 +66,8 @@ class RailTrackProcessor:
     ):
         self.track_votes = {}
         self.current_tracks = set()
-        self.track_detection_times = {}  # New: Store detection times
+        self.track_detection_times = {}
+        self.reported_defective_tracks = set() # new set to track already tracked ids
         self.th_detection = th_detection
         self.th_vote = th_vote
         self.tracker_period = tracker_period
@@ -194,12 +195,18 @@ def cb_add_statistics(cb_args): # this function runs independently on a timer -5
 
     print(f"No.of Defective tracks detected: {len(defective_tracks_info)}")  # Debug print
     
+    newly_reported_defects = []
+    with track_processor.stats_lock:
+        for defect_info in defective_tracks_info:
+            track_id = defect_info['track_id']
+            if track_id not in track_processor.reported_defective_tracks:
+                newly_reported_defects.append(defect_info)
+                track_processor.reported_defective_tracks.add(track_id)
+
     # if [] -> dont add to stats_queue
-    if defective_tracks_info:
-        stats_data = defective_tracks_info
-    
-        stats_queue.put_nowait(stats_data)
-        #print(f"stats_queue updated, Queue size after put: {stats_queue.qsize()}")  # Debug print
+    if newly_reported_defects:
+        # It's better to put a list of dictionaries, not a list containing a list of dictionaries
+        stats_queue.put_nowait(newly_reported_defects)    
 
     # Next report timeout
     GLib.timeout_add_seconds(stats_period, cb_add_statistics, cb_args)
