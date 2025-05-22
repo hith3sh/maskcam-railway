@@ -1,5 +1,5 @@
 # run inference only for video file
-python3 maskcam_run.py file:///home/lab5/Desktop/Railway_faults.fyp/yolov11-nano/fishbolts.mp4
+python3 maskcam_run.py file:///home/lab5/Desktop/fishbolts.mp4
 
 # run inference and streaming for camera
 export MASKCAM_DEVICE_ADDRESS=$(hostname -I | awk '{print $1}')
