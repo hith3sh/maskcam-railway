@@ -7,7 +7,7 @@ detection-threshold=0.1
 voting-threshold=0.1
 # Smaller detections (in pixels) will be discarded
 min-track-size=4
-disable-tracker=0
+disable-tracker=1
 
 
 [maskcam]

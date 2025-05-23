@@ -431,7 +431,6 @@ def cb_buffer_probe(pad, info, cb_args):
             
             alert_display_meta.num_labels += 1 # Increment label count for this display meta
             
-            print(f"HIGH GRASS COVERAGE!")
         # ------------------------------------------------------------------------------
 
         # Each meta object carries max 16 rects/labels/etc.
@@ -473,6 +472,7 @@ def cb_buffer_probe(pad, info, cb_args):
 
         # Raw detections
         # if drawing is enabled
+        # below lines won't run
         if track_processor.draw_raw_detections:
             for n_detection, detection in enumerate(detections):
                 points = detection.points
