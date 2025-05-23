@@ -75,8 +75,9 @@ class RailTrackProcessor:
         self.disable_detection_validation = False
         self.min_votes = 5
         self.max_votes = 50
-        self.color_defective = (1.0, 0.0, 0.0)  # red
-        self.color_non_defective = (0.0, 1.0, 0.0)  # green
+        self.color_defective = (1.0, 0.0, 0.0)  # Red
+        self.color_grass = (0.0, 1.0, 0.0, 1.0) # Green
+        self.color_non_defective = (0.0, 0.0, 1.0, 1.0) # Blue
         self.color_unknown = (1.0, 1.0, 0.0)  # yellow
         self.draw_raw_detections = disable_tracker
         self.draw_tracked_objects = not disable_tracker
@@ -379,13 +380,25 @@ def cb_buffer_probe(pad, info, cb_args):
         contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         grass_detections_opencv = []
+        total_grass_area_current_frame = 0 # Initialize total grass area for this frame
+
+        # Get frame dimensions to calculate total frame area for percentage calculation
+        frame_height, frame_width, _ = frame.shape
+        total_frame_pixels = frame_height * frame_width
+
+        # Define a threshold for the total grass area (e.g., 20% of the frame)
+        # Adjust this value based on your requirements
+        # For a 640x480 frame (307,200 total pixels), 20% is 61,440 pixels
+        TOTAL_GRASS_AREA_THRESHOLD = 0.30 * total_frame_pixels
+
         for contour in contours:
             # Filter contours by area (e.g., minimum area to avoid noise)
             area = cv2.contourArea(contour)
-            if area > 1000:  # ADJUST this threshold based on expected grass patch size
+            # Only consider individual grass patches larger than 10000 pixels (example)
+            # This is your filter for *individual* grass patches
+            if area > 1000:
                 x, y, w, h = cv2.boundingRect(contour)
                 box_points = ((x, y), (x + w, y + h))
-                # You can assign a dummy confidence if needed, or base it on area/density
                 confidence = 1.0 # Or based on area/density within the contour
                 grass_detections_opencv.append(
                     Detection(
@@ -393,14 +406,38 @@ def cb_buffer_probe(pad, info, cb_args):
                         data={"label": "grass", "p": confidence},
                     )
                 )
+                # Add the area of this valid grass contour to the total
+                total_grass_area_current_frame += area
         
         # Append OpenCV detections to the main detections list
         detections.extend(grass_detections_opencv)
+
+        # Now, check the total aggregated grass area for the current frame
+        if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
+            # You can add a special display meta for this condition
+            # Acquire a new display meta object for the alert
+            alert_display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
+            pyds.nvds_add_display_meta_to_frame(frame_meta, alert_display_meta)
+
+            # Set text parameters for the alert
+            alert_text_params = alert_display_meta.text_params[0] # Use the first slot
+            alert_text_params.display_text = f"HIGH GRASS COVERAGE!"
+            alert_text_params.x_offset = 10 # Top-left corner
+            alert_text_params.y_offset = 30 # A bit below the top edge
+            alert_text_params.font_params.font_size = 18
+            alert_text_params.font_params.font_color.set(1.0, 0.0, 0.0, 1.0) # Red text, opaque
+            alert_text_params.set_bg_clr = 1
+            alert_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 0.5) # Semi-transparent black background
+            
+            alert_display_meta.num_labels += 1 # Increment label count for this display meta
+            
+            print(f"HIGH GRASS COVERAGE!")
         # ------------------------------------------------------------------------------
 
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
 
+        #checks if tracker is enabled
         if track_processor.tracker is not None:
             # Track, count and draw tracked objects
             tracked_objects = track_processor.tracker.update(
@@ -435,12 +472,14 @@ def cb_buffer_probe(pad, info, cb_args):
                     draw_detection(display_meta, n_draw, box_points, label, color)
 
         # Raw detections
+        # if drawing is enabled
         if track_processor.draw_raw_detections:
             for n_detection, detection in enumerate(detections):
                 points = detection.points
                 box_points = points.clip(0).astype(int)
                 label = detection.data["label"]
                 if label == "grass":
+                    color = track_processor.color_grass
                     color = (0.0, 1.0, 0.0, 0.0) # Green for grass
                 if label == LABEL_NON_DEFECTIVE:
                     color = track_processor.color_non_defective
