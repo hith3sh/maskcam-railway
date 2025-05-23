@@ -334,6 +334,70 @@ def cb_buffer_probe(pad, info, cb_args):
             pyds.nvds_remove_obj_meta_from_frame(frame_meta, obj_meta)
         obj_meta_list = None
 
+        # ------------------ Light Intensity Processing ------------------
+
+        n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
+        
+        # Convert to BGR for OpenCV processing
+        frame = np.array(n_frame, copy=True, order='C')
+
+        # Convert to grayscale
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Calculate the mean pixel value
+        mean_value = np.mean(gray_frame)
+        x = max(0, min(100, (mean_value / 255) * 100))
+        x = 100 - x
+        if x < 60:
+            x = 0
+
+        # x=0 -> no light
+        # x=100 -> max light
+        my_pwm.ChangeDutyCycle(x)
+        my_pwm_2.ChangeDutyCycle(x)
+        # ----------------------------------------------------------------
+        # ------------------ Grass Detection using OpenCV (New Logic) ------------------
+        
+        # Convert BGR to HSV
+        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        # Define a broad range for green color in HSV
+        # These values might need tuning based on your specific images and lighting
+        # Hue: 0-179 (OpenCV scale), Saturation: 0-255, Value: 0-255
+        lower_green = np.array([35, 40, 40])  # ADJUST THESE VALUES
+        upper_green = np.array([85, 255, 255]) # ADJUST THESE VALUES
+
+        # Create a mask for green color
+        green_mask = cv2.inRange(hsv_frame, lower_green, upper_green)
+
+        # Apply morphological operations to clean up the mask
+        kernel = np.ones((5,5),np.uint8)
+        green_mask = cv2.erode(green_mask, kernel, iterations = 1) # Erosion removes small specks
+        green_mask = cv2.dilate(green_mask, kernel, iterations = 2) # dilation helps connect fragmented regions and fill small holes
+
+        # Find contours in the green mask
+        contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        grass_detections_opencv = []
+        for contour in contours:
+            # Filter contours by area (e.g., minimum area to avoid noise)
+            area = cv2.contourArea(contour)
+            if area > 1000:  # ADJUST this threshold based on expected grass patch size
+                x, y, w, h = cv2.boundingRect(contour)
+                box_points = ((x, y), (x + w, y + h))
+                # You can assign a dummy confidence if needed, or base it on area/density
+                confidence = 1.0 # Or based on area/density within the contour
+                grass_detections_opencv.append(
+                    Detection(
+                        np.array(box_points),
+                        data={"label": "grass", "p": confidence},
+                    )
+                )
+        
+        # Append OpenCV detections to the main detections list
+        detections.extend(grass_detections_opencv)
+        # ------------------------------------------------------------------------------
+
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
 
@@ -376,6 +440,8 @@ def cb_buffer_probe(pad, info, cb_args):
                 points = detection.points
                 box_points = points.clip(0).astype(int)
                 label = detection.data["label"]
+                if label == "grass":
+                    color = (0.0, 1.0, 0.0, 0.0) # Green for grass
                 if label == LABEL_NON_DEFECTIVE:
                     color = track_processor.color_non_defective
                 elif label == LABEL_DEFECTIVE:
@@ -398,28 +464,7 @@ def cb_buffer_probe(pad, info, cb_args):
             # print(".", end="", flush=True)
         # print("")
 
-        # ------------------ Light Intensity Processing ------------------
 
-        n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
-        
-        # Convert to BGR for OpenCV processing
-        frame = np.array(n_frame, copy=True, order='C')
-
-        # Convert to grayscale
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Calculate the mean pixel value
-        mean_value = np.mean(gray_frame)
-        x = max(0, min(100, (mean_value / 255) * 100))
-        x = 100 - x
-        if x < 60:
-            x = 0
-
-        # x=0 -> no light
-        # x=100 -> max light
-        my_pwm.ChangeDutyCycle(x)
-        my_pwm_2.ChangeDutyCycle(x)
-        # ----------------------------------------------------------------
 
         if not frame_number % FRAMES_LOG_INTERVAL:
             print(f"Processed {frame_number} frames...")
