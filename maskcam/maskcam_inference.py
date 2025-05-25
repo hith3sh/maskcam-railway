@@ -63,7 +63,8 @@ e_interrupt = None
 class RailTrackProcessor:
     def __init__(
         self, th_detection=0, th_vote=0, min_track_size=0, tracker_period=1, 
-        disable_tracker=False, small_grass_detector = 0
+        disable_tracker=False, grass_detector=1, small_grass_detector = 0, 
+        enable_light = 1
     ):
         self.track_votes = {}
         self.current_tracks = set()
@@ -83,7 +84,9 @@ class RailTrackProcessor:
         self.draw_raw_detections = disable_tracker
         self.draw_tracked_objects = not disable_tracker
         self.stats_lock = threading.Lock()
+        self.grass_detection = grass_detector
         self.small_grass_detection_enabled = small_grass_detector
+        self.enable_light = enable_light
 
         # Norfair Tracker
         if disable_tracker:
@@ -338,95 +341,101 @@ def cb_buffer_probe(pad, info, cb_args):
         obj_meta_list = None
 
         # ------------------ Light Intensity Processing ------------------
+        if not track_processor.enable_light:
+            pass
+        else:
+            n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
+            
+            # Convert to BGR for OpenCV processing
+            frame = np.array(n_frame, copy=True, order='C')
 
-        n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
-        
-        # Convert to BGR for OpenCV processing
-        frame = np.array(n_frame, copy=True, order='C')
+            # Convert to grayscale
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Convert to grayscale
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Calculate the mean pixel value
+            mean_value = np.mean(gray_frame)
+            x = max(0, min(100, (mean_value / 255) * 100))
+            x = 100 - x
+            if x < 60:
+                x = 0
 
-        # Calculate the mean pixel value
-        mean_value = np.mean(gray_frame)
-        x = max(0, min(100, (mean_value / 255) * 100))
-        x = 100 - x
-        if x < 60:
-            x = 0
-
-        # x=0 -> no light
-        # x=100 -> max light
-        my_pwm.ChangeDutyCycle(x)
-        my_pwm_2.ChangeDutyCycle(x)
+            # x=0 -> no light
+            # x=100 -> max light
+            my_pwm.ChangeDutyCycle(x)
+            my_pwm_2.ChangeDutyCycle(x)
         # ----------------------------------------------------------------
         # ------------------ Grass Detection using OpenCV ------------------
-        
-        # Convert BGR to HSV
-        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # Define a broad range for green color in HSV
-        # These values might need tuning based on your specific images and lighting
-        # Hue: 0-179 (OpenCV scale), Saturation: 0-255, Value: 0-255
-        lower_green = np.array([35, 40, 40])  # ADJUST THESE VALUES
-        upper_green = np.array([85, 255, 255]) # ADJUST THESE VALUES
-
-        # Create a mask for green color
-        green_mask = cv2.inRange(hsv_frame, lower_green, upper_green)
-
-        # Apply morphological operations to clean up the mask
-        kernel = np.ones((5,5),np.uint8)
-        green_mask = cv2.erode(green_mask, kernel, iterations = 1) # Erosion removes small specks
-        green_mask = cv2.dilate(green_mask, kernel, iterations = 2) # dilation helps connect fragmented regions and fill small holes
-
-        # Find contours in the green mask
-        contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        # Get frame dimensions to calculate total frame area for percentage calculation
-        frame_height, frame_width, _ = frame.shape
-        total_frame_pixels = frame_height * frame_width
-
-        grass_detections_opencv = []
-        total_grass_area_current_frame = 0
-        TOTAL_GRASS_AREA_THRESHOLD = 0.30 * total_frame_pixels
-
-        # if grasses of small shape with bbox is needed
-        if track_processor.small_grass_detection_enabled:
-            for contour in contours:
-                area = cv2.contourArea(contour)
-                if area > 1000:
-                    total_grass_area_current_frame += area
-
-                    x, y, w, h = cv2.boundingRect(contour)
-                    box_points = ((x, y), (x + w, y + h))
-                    confidence = 1.0
-                    grass_detections_opencv.append(
-                        Detection(
-                            np.array(box_points),
-                            data={"label": "grass", "p": confidence},
-                        )
-                    )
-            #Append OpenCV detections to the main detections list
-            detections.extend(grass_detections_opencv)
-
+        # Check if grass detection is enabled
+        if not track_processor.grass_detection:
+            pass
         else:
-            for contour in contours:
-                area = cv2.contourArea(contour)
-                if area > 1000:
-                    total_grass_area_current_frame += area
-                # Now, check the total aggregated grass area for the current frame
-                if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
-                    print("HIGH GRASS COVERAGE!")
-                    box_points = ((200, 150), (400, 350)) #large box on center
-                    confidence = 1.0
-                    #directly add to detections
-                    detections.append(
-                        Detection(
-                            np.array(box_points),
-                            data={"label": "grass", "p": confidence},
-                        )
-                    )
+            # Convert BGR to HSV
+            hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+            # Define a broad range for green color in HSV
+            # These values might need tuning based on your specific images and lighting
+            # Hue: 0-179 (OpenCV scale), Saturation: 0-255, Value: 0-255
+            lower_green = np.array([35, 40, 40])  # ADJUST THESE VALUES
+            upper_green = np.array([85, 255, 255]) # ADJUST THESE VALUES
+
+            # Create a mask for green color
+            green_mask = cv2.inRange(hsv_frame, lower_green, upper_green)
+
+            # Apply morphological operations to clean up the mask
+            kernel = np.ones((5,5),np.uint8)
+            green_mask = cv2.erode(green_mask, kernel, iterations = 1) # Erosion removes small specks
+            green_mask = cv2.dilate(green_mask, kernel, iterations = 2) # dilation helps connect fragmented regions and fill small holes
+
+            # Find contours in the green mask
+            contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-        # ------------------------------------------------------------------------------
+            # Get frame dimensions to calculate total frame area for percentage calculation
+            frame_height, frame_width, _ = frame.shape
+            total_frame_pixels = frame_height * frame_width
+
+            grass_detections_opencv = []
+            total_grass_area_current_frame = 0
+            TOTAL_GRASS_AREA_THRESHOLD = 0.30 * total_frame_pixels
+
+            # if grasses of small shape with bbox is needed
+            if track_processor.small_grass_detection_enabled:
+                for contour in contours:
+                    area = cv2.contourArea(contour)
+                    if area > 1000:
+                        total_grass_area_current_frame += area
+
+                        x, y, w, h = cv2.boundingRect(contour)
+                        box_points = ((x, y), (x + w, y + h))
+                        confidence = 1.0
+                        grass_detections_opencv.append(
+                            Detection(
+                                np.array(box_points),
+                                data={"label": "grass", "p": confidence},
+                            )
+                        )
+                #Append OpenCV detections to the main detections list
+                detections.extend(grass_detections_opencv)
+
+            else:
+                for contour in contours:
+                    area = cv2.contourArea(contour)
+                    if area > 1000:
+                        total_grass_area_current_frame += area
+                    # Now, check the total aggregated grass area for the current frame
+                    if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
+                        print("HIGH GRASS COVERAGE!")
+                        box_points = ((200, 150), (400, 350)) #large box on center
+                        confidence = 1.0
+                        #directly add to detections
+                        detections.append(
+                            Detection(
+                                np.array(box_points),
+                                data={"label": "grass", "p": confidence},
+                            )
+                        )
+                
+            # ------------------------------------------------------------------------------
 
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
@@ -672,13 +681,17 @@ def main(
     track_min_track_size = int(config["track-processor"]["min-track-size"])
     track_disable_tracker = int(config["track-processor"]["disable-tracker"])
     small_grass_detector = int(config["grass-detection"]["small-grass-detection"])
+    grass_detector = int(config["grass-detection"]["grass-detection"])
+    enable_light = int(config["light"]["light-processing"])
     track_processor = RailTrackProcessor(
         th_detection=track_detection_threshold,
         th_vote=track_voting_threshold,
         min_track_size=track_min_track_size,
         tracker_period=track_tracker_period,
         disable_tracker=track_disable_tracker,
-        small_grass_detector=small_grass_detector
+        grass_detector=grass_detector,
+        small_grass_detector=small_grass_detector,
+        enable_light = enable_light
     )
 
     # Standard GStreamer initialization

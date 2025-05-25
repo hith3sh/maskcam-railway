@@ -11,6 +11,10 @@ disable-tracker=0
 
 [grass-detection]
 small-grass-detection=0
+grass-detection=1
+
+[light]
+light-processing=1
 
 [maskcam]
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
