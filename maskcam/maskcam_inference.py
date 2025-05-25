@@ -81,6 +81,8 @@ class RailTrackProcessor:
         self.grass_detection = grass_detector
         self.small_grass_detection_enabled = small_grass_detector
         self.enable_light = enable_light
+        # New list to store grass detection times
+        self.grass_times = []
 
         self.th_detection = th_detection
         self.th_vote = th_vote
@@ -462,8 +464,11 @@ def cb_buffer_probe(pad, info, cb_args):
                 track_processor.grass_detected_previously = True
                 # keep at the limit
                 track_processor.grass_consecutive_frames = track_processor.grass_frame_threshold
-                # now get the time
-                # save the time to a json file down below
+                # Add to grass_times list
+                track_processor.grass_times.append({
+                    "type": "grass_detected",
+                    "time": grass_founded_time.isoformat()
+                })
 
             # this will reach when grass frames go from +100 -> -100
             if track_processor.grass_consecutive_frames <= -(track_processor.grass_frame_threshold) and track_processor.grass_detected_previously:
@@ -471,7 +476,11 @@ def cb_buffer_probe(pad, info, cb_args):
                 print(f"We're loosing sight of Grass! at {grass_missed_time} ")
                 # keeping at the limit
                 track_processor.grass_consecutive_frames = -(track_processor.grass_frame_threshold)
-                # record this time
+                # Add to grass_times list
+                track_processor.grass_times.append({
+                    "type": "grass_stopped",
+                    "time": grass_missed_time.isoformat()
+                })
 
 
         # Each meta object carries max 16 rects/labels/etc.
@@ -1021,6 +1030,13 @@ def main(
         end_time = time.time()
         print("Inference main loop ending.")
         pipeline.set_state(Gst.State.NULL)
+
+        # Save grass detection times to JSON file
+        if track_processor.grass_times:
+            grass_stats_file = os.path.join(config["grass-detection"]["file-directory"], "grass_detection_times.json")
+            print(f"Saving grass detection times to: {grass_stats_file}")
+            with open(grass_stats_file, 'w') as f:
+                json.dump(track_processor.grass_times, f, indent=2)
 
         # Profiling display
         if start_time is not None and end_time is not None:
