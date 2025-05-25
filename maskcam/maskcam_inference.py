@@ -151,7 +151,7 @@ class RailTrackProcessor:
             label = "Non-defective" if track_votes > 0 else "Defective"
         else:
             color = self.color_unknown
-            label = "not visible"
+            label = "grass" #"not visible"
         return f"{track_id}|{label}({abs(track_votes)})", color
 
     def get_instant_statistics(self, refresh=True):
@@ -357,7 +357,7 @@ def cb_buffer_probe(pad, info, cb_args):
         my_pwm.ChangeDutyCycle(x)
         my_pwm_2.ChangeDutyCycle(x)
         # ----------------------------------------------------------------
-        # ------------------ Grass Detection using OpenCV (New Logic) ------------------
+        # ------------------ Grass Detection using OpenCV ------------------
         
         # Convert BGR to HSV
         hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -414,22 +414,12 @@ def cb_buffer_probe(pad, info, cb_args):
 
         # Now, check the total aggregated grass area for the current frame
         if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
-            # You can add a special display meta for this condition
-            # Acquire a new display meta object for the alert
-            alert_display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
-            pyds.nvds_add_display_meta_to_frame(frame_meta, alert_display_meta)
+            #then check for multiple frames and get the gps coordinate
+            print("HIGH GRASS COVERAGE!")
 
-            # Set text parameters for the alert
-            alert_text_params = alert_display_meta.text_params[0] # Use the first slot
-            alert_text_params.display_text = f"HIGH GRASS COVERAGE!"
-            alert_text_params.x_offset = 10 # Top-left corner
-            alert_text_params.y_offset = 30 # A bit below the top edge
-            alert_text_params.font_params.font_size = 18
-            alert_text_params.font_params.font_color.set(1.0, 0.0, 0.0, 1.0) # Red text, opaque
-            alert_text_params.set_bg_clr = 1
-            alert_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 0.5) # Semi-transparent black background
-            
-            alert_display_meta.num_labels += 1 # Increment label count for this display meta
+            # pass down that grass is present
+            # add a
+
             
         # ------------------------------------------------------------------------------
 
@@ -471,8 +461,7 @@ def cb_buffer_probe(pad, info, cb_args):
                     draw_detection(display_meta, n_draw, box_points, label, color)
 
         # Raw detections
-        # if drawing is enabled
-        # below lines won't run
+        # Below lines WON'T RUN if tracker is enabled
         if track_processor.draw_raw_detections:
             for n_detection, detection in enumerate(detections):
                 points = detection.points
