@@ -386,40 +386,38 @@ def cb_buffer_probe(pad, info, cb_args):
         frame_height, frame_width, _ = frame.shape
         total_frame_pixels = frame_height * frame_width
 
-        # Define a threshold for the total grass area (e.g., 20% of the frame)
-        # Adjust this value based on your requirements
-        # For a 640x480 frame (307,200 total pixels), 20% is 61,440 pixels
         TOTAL_GRASS_AREA_THRESHOLD = 0.30 * total_frame_pixels
 
         for contour in contours:
-            # Filter contours by area (e.g., minimum area to avoid noise)
             area = cv2.contourArea(contour)
-            # Only consider individual grass patches larger than 10000 pixels (example)
-            # This is your filter for *individual* grass patches
             if area > 1000:
-                x, y, w, h = cv2.boundingRect(contour)
-                box_points = ((x, y), (x + w, y + h))
-                confidence = 1.0 # Or based on area/density within the contour
-                grass_detections_opencv.append(
-                    Detection(
-                        np.array(box_points),
-                        data={"label": "grass", "p": confidence},
-                    )
-                )
                 # Add the area of this valid grass contour to the total
                 total_grass_area_current_frame += area
+
+                # x, y, w, h = cv2.boundingRect(contour)
+                # box_points = ((x, y), (x + w, y + h))
+                # confidence = 1.0 # Or based on area/density within the contour
+                # grass_detections_opencv.append(
+                #     Detection(
+                #         np.array(box_points),
+                #         data={"label": "grass", "p": confidence},
+                #     )
+                # )
         
         # Append OpenCV detections to the main detections list
-        detections.extend(grass_detections_opencv)
+        #detections.extend(grass_detections_opencv)
 
         # Now, check the total aggregated grass area for the current frame
         if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
-            #then check for multiple frames and get the gps coordinate
             print("HIGH GRASS COVERAGE!")
-
-            # pass down that grass is present
-            # add a
-
+            box_points = ((200, 150), (400, 350)) #large box on center
+            confidence = 1.0
+            detections.append(
+                Detection(
+                    np.array(box_points),
+                    data={"label": "grass", "p": confidence},
+                )
+            )
             
         # ------------------------------------------------------------------------------
 
