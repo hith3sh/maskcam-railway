@@ -9,6 +9,8 @@ voting-threshold=0.1
 min-track-size=4
 disable-tracker=0
 
+[grass-detection]
+small-grass-detection=0
 
 [maskcam]
 # Time to send statistics in seconds. Set smaller than fileserver-video-period
