@@ -10,8 +10,10 @@ min-track-size=4
 disable-tracker=0
 
 [grass-detection]
-small-grass-detection=0
 grass-detection=1
+# grass-detection has to be 1 below to work
+small-grass-detection=0 
+frame-threshold=100
 
 [light]
 light-processing=1

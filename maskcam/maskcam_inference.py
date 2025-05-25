@@ -51,6 +51,7 @@ from .utils import glib_cb_restart, load_udp_ports_filesaving
 
 LABEL_DEFECTIVE = "Defective"
 LABEL_NON_DEFECTIVE = "Non-defective"
+LABEL_GRASS = "grass"
 FRAMES_LOG_INTERVAL = int(config["maskcam"]["inference-log-interval"])
 
 # Global vars
@@ -62,14 +63,25 @@ e_interrupt = None
 
 class RailTrackProcessor:
     def __init__(
-        self, th_detection=0, th_vote=0, min_track_size=0, tracker_period=1, 
-        disable_tracker=False, grass_detector=1, small_grass_detector = 0, 
-        enable_light = 1
+        self, th_detection=0, th_vote=0, min_track_size=0, tracker_period=1,
+        disable_tracker=False, grass_detector=1, small_grass_detector = 0,
+        enable_light = 1, grass_frame_threshold=100
     ):
         self.track_votes = {}
         self.current_tracks = set()
         self.track_detection_times = {}
         self.reported_defective_tracks = set() # new set to track already tracked ids
+
+        # New attributes for grass presence monitoring
+        self.grass_consecutive_frames = 0
+        self.grass_detected_previously = False
+        self.grass_frame_threshold = grass_frame_threshold
+        # To store if grass was detected in the current frame by OpenCV
+        self.grass_detected_in_current_frame = False
+        self.grass_detection = grass_detector
+        self.small_grass_detection_enabled = small_grass_detector
+        self.enable_light = enable_light
+
         self.th_detection = th_detection
         self.th_vote = th_vote
         self.tracker_period = tracker_period
@@ -84,9 +96,6 @@ class RailTrackProcessor:
         self.draw_raw_detections = disable_tracker
         self.draw_tracked_objects = not disable_tracker
         self.stats_lock = threading.Lock()
-        self.grass_detection = grass_detector
-        self.small_grass_detection_enabled = small_grass_detector
-        self.enable_light = enable_light
 
         # Norfair Tracker
         if disable_tracker:
@@ -366,6 +375,9 @@ def cb_buffer_probe(pad, info, cb_args):
         # ----------------------------------------------------------------
         # ------------------ Grass Detection using OpenCV ------------------
 
+        # Reset the flag at the beginning of each frame's grass detection phase
+        track_processor.grass_detected_in_current_frame = False
+
         # Check if grass detection is enabled
         if not track_processor.grass_detection:
             pass
@@ -425,6 +437,7 @@ def cb_buffer_probe(pad, info, cb_args):
                     # Now, check the total aggregated grass area for the current frame
                     if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
                         print("HIGH GRASS COVERAGE!")
+                        track_processor.grass_detected_in_current_frame = True # Set flag
                         box_points = ((200, 150), (400, 350)) #large box on center
                         confidence = 1.0
                         #directly add to detections
@@ -436,6 +449,30 @@ def cb_buffer_probe(pad, info, cb_args):
                         )
                 
             # ------------------------------------------------------------------------------
+            # After OpenCV grass detection, update consecutive frame count
+            if track_processor.grass_detected_in_current_frame:
+                track_processor.grass_consecutive_frames += 1
+            else:
+                if track_processor.grass_detected_previously:
+                    track_processor.grass_consecutive_frames -= 1
+
+            if track_processor.grass_consecutive_frames >= track_processor.grass_frame_threshold:
+                grass_founded_time = datetime.now()
+                print(f"Grass Detected! at {grass_founded_time}")
+                track_processor.grass_detected_previously = True
+                # keep at the limit
+                track_processor.grass_consecutive_frames = track_processor.grass_frame_threshold
+                # now get the time
+                # save the time to a json file down below
+
+            # this will reach when grass frames go from +100 -> -100
+            if track_processor.grass_consecutive_frames <= -(track_processor.grass_frame_threshold) and track_processor.grass_detected_previously:
+                grass_missed_time = datetime.now()
+                print(f"We're loosing sight of Grass! at {grass_missed_time} ")
+                # keeping at the limit
+                track_processor.grass_consecutive_frames = -(track_processor.grass_frame_threshold)
+                # record this time
+
 
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
@@ -627,7 +664,6 @@ def show_troubleshooting():
 
     [yellow]END HELP[/yellow]
     """
-    )
 
 
 def main(
@@ -682,6 +718,7 @@ def main(
     track_disable_tracker = int(config["track-processor"]["disable-tracker"])
     small_grass_detector = int(config["grass-detection"]["small-grass-detection"])
     grass_detector = int(config["grass-detection"]["grass-detection"])
+    grass_frame_threshold = int(config["grass-detection"]["frame-threshold"])
     enable_light = int(config["light"]["light-processing"])
     track_processor = RailTrackProcessor(
         th_detection=track_detection_threshold,
@@ -691,7 +728,8 @@ def main(
         disable_tracker=track_disable_tracker,
         grass_detector=grass_detector,
         small_grass_detector=small_grass_detector,
-        enable_light = enable_light
+        enable_light = enable_light,
+        grass_frame_threshold = grass_frame_threshold
     )
 
     # Standard GStreamer initialization
