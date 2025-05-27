@@ -485,7 +485,7 @@ def cb_buffer_probe(pad, info, cb_args):
                     track_processor.grass_detected_previously = False
                     # track_processor.grass_consecutive_frames = 0 # Reset counter
 
-                    grass_event_data = {
+                    grass_event_data = {    
                         "type": "grass_stopped",
                         "time": grass_missed_time.isoformat()
                     }
