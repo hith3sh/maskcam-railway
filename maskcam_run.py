@@ -377,7 +377,7 @@ if __name__ == "__main__":
         os.makedirs(os.path.dirname(stats_file_name), exist_ok=True)
 
 
-        grass_dir = int(config["grass-detection"]["file-directory"]) 
+        grass_dir = config["grass-detection"]["file-directory"]
         grass_events_log_file_name = os.path.join(grass_dir, f"grass_events_log{timestamp_for_json_file}.json")
         print(f"Grass events will be saved to: {grass_events_log_file_name}")
         os.makedirs(os.path.dirname(grass_events_log_file_name), exist_ok=True)
