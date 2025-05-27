@@ -167,7 +167,7 @@ class RailTrackProcessor:
             label = "Non-defective" if track_votes > 0 else "Defective"
         else:
             color = self.color_unknown
-            label = "grass" #"not visible"  ## CHANGE THIS!
+            label = "grass"#"not visible"  ## CHANGE THIS!
         return f"{track_id}|{label}({abs(track_votes)})", color
 
     def get_instant_statistics(self, refresh=True):
@@ -1034,7 +1034,9 @@ def main(
 
         # Save grass detection times to JSON file
         if track_processor.grass_times:
-            grass_stats_file = os.path.join(config["grass-detection"]["file-directory"], "grass_detection_times.json")
+            grass_directory = config["grass-detection"]["file-directory"]
+            grass_stats_file = os.path.join(grass_directory, "grass_detection_times.json")
+            os.makedirs(grass_directory, exist_ok=True)
             print(f"Saving grass detection times to: {grass_stats_file}")
             with open(grass_stats_file, 'w') as f:
                 json.dump(track_processor.grass_times, f, indent=2)
