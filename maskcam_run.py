@@ -50,6 +50,7 @@ P_FILESERVER = "file-server"
 P_FILESAVE_PREFIX = "file-save-"
 
 processes_info = {}
+all_grass_statistics = [] # New list to store grass events from the queue
 
 def write_statistics_async(stats_dir, data, stats_file_name):
     try:
@@ -157,6 +158,17 @@ def handle_statistics(stats_queue, config, is_live_input, all_statistics):
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
 
+
+def handle_grass_statistics(grass_stats_queue, all_grass_events_list):
+    """Handles grass statistics from the queue and appends them to a list."""
+    while not grass_stats_queue.empty():
+        try:
+            grass_event = grass_stats_queue.get_nowait()
+            all_grass_events_list.append(grass_event)
+        except queue.Empty:
+            break # Queue is empty
+        except Exception as e:
+            print(f"Error processing grass statistics: {str(e)}")
 
 def allocate_free_udp_port():
     new_port = udp_ports_pool.pop()
@@ -320,6 +332,7 @@ if __name__ == "__main__":
 
         # Should only have 1 element at a time unless this thread gets blocked
         stats_queue = mp.Queue(maxsize=5)
+        grass_stats_queue = mp.Queue() # New queue for grass statistics
 
         # SIGINT handler (Ctrl+C)
         signal.signal(signal.SIGINT, sigint_handler)
@@ -348,6 +361,7 @@ if __name__ == "__main__":
             input_filename=input_filename,
             output_filename=output_filename,
             stats_queue=stats_queue, #created stats queue is passed to inference process
+            grass_stats_queue=grass_stats_queue, # Pass the new grass queue
             e_ready=e_inference_ready,
         )
 
@@ -363,11 +377,16 @@ if __name__ == "__main__":
         # Ensure directory exists
         os.makedirs(os.path.dirname(stats_file_name), exist_ok=True)
 
+        grass_events_log_file_name = os.path.join(stats_dir, "grass_events_log.json")
+        print(f"Grass events will be saved to: {grass_events_log_file_name}")
+        os.makedirs(os.path.dirname(grass_events_log_file_name), exist_ok=True)
+
 
         while not e_interrupt.is_set():
             # handle_statistics gets called 0.1 seconds to check if there are any stats in the stats_queue
             # Retrieves statistics from stats_queue and appends them to all_statistics,
             handle_statistics(stats_queue, config, is_live_input, all_statistics)
+            handle_grass_statistics(grass_stats_queue, all_grass_statistics) # Handle grass stats
             current_time = datetime.now()
             
             # Write statistics to JSON file every 60 seconds
@@ -458,12 +477,31 @@ if __name__ == "__main__":
             all_statistics.append(statistics)
         except queue.Empty:
             break
+    
+    # Process any remaining grass statistics from the queue
+    while not grass_stats_queue.empty():
+        try:
+            grass_event = grass_stats_queue.get_nowait()
+            all_grass_statistics.append(grass_event)
+        except queue.Empty:
+            break
 
     # Write final statistics to JSON file
     if all_statistics:
         write_statistics_async(stats_dir, all_statistics, stats_file_name)
         print("Final statistics written to JSON file.")
         all_statistics.clear()
+
+    # Write final grass events to JSON file
+    if all_grass_statistics:
+        print(f"Saving final grass events to: {grass_events_log_file_name}")
+        try:
+            with open(grass_events_log_file_name, 'w') as f:
+                json.dump(all_grass_statistics, f, indent=2, default=str)
+            print("Final grass events written to JSON file.")
+        except Exception as e:
+            print(f"Error writing final grass events: {str(e)}")
+        all_grass_statistics.clear()
 
     # Terminate all running processes, avoid breaking on any exception
     for active_file_process in active_filesave_processes:

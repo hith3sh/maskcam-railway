@@ -53,6 +53,7 @@ LABEL_DEFECTIVE = "Defective"
 LABEL_NON_DEFECTIVE = "Non-defective"
 LABEL_GRASS = "grass"
 FRAMES_LOG_INTERVAL = int(config["maskcam"]["inference-log-interval"])
+SMALL_GRASS_DETECTOR = int(config["grass-detection"]["small-grass-detection"])
 
 # Global vars
 frame_number = 0
@@ -82,7 +83,6 @@ class RailTrackProcessor:
         self.small_grass_detection_enabled = small_grass_detector
         self.enable_light = enable_light
         # New list to store grass detection times
-        self.grass_times = []
 
         self.th_detection = th_detection
         self.th_vote = th_vote
@@ -167,7 +167,10 @@ class RailTrackProcessor:
             label = "Non-defective" if track_votes > 0 else "Defective"
         else:
             color = self.color_unknown
-            label = "grass"#"not visible"  ## CHANGE THIS!
+            if SMALL_GRASS_DETECTOR:
+                label = "grass"
+            else:
+                label = "not visible"
         return f"{track_id}|{label}({abs(track_votes)})", color
 
     def get_instant_statistics(self, refresh=True):
@@ -279,7 +282,7 @@ def cb_buffer_probe(pad, info, cb_args):
     global frame_number
     global start_time
 
-    track_processor, e_ready = cb_args
+    track_processor, e_ready, grass_stats_queue_local = cb_args # Unpack grass_stats_queue
     gst_buffer = info.get_buffer()
     if not gst_buffer:
         print("Unable to get GstBuffer", error=True)
@@ -438,7 +441,6 @@ def cb_buffer_probe(pad, info, cb_args):
                         total_grass_area_current_frame += area
                     # Now, check the total aggregated grass area for the current frame
                     if total_grass_area_current_frame > TOTAL_GRASS_AREA_THRESHOLD:
-                        print("HIGH GRASS COVERAGE!")
                         track_processor.grass_detected_in_current_frame = True # Set flag
                         box_points = ((200, 150), (400, 350)) #large box on center
                         confidence = 1.0
@@ -462,26 +464,36 @@ def cb_buffer_probe(pad, info, cb_args):
                 grass_founded_time = datetime.now()
                 print(f"Grass Detected! at {grass_founded_time}")
                 track_processor.grass_detected_previously = True
-                # keep at the limit
-                track_processor.grass_consecutive_frames = track_processor.grass_frame_threshold
-                # Add to grass_times list
-                track_processor.grass_times.append({
+                track_processor.grass_consecutive_frames = track_processor.grass_frame_threshold # cap at threshold
+                
+                grass_event_data = {
                     "type": "grass_detected",
                     "time": grass_founded_time.isoformat()
-                })
+                }
 
-            # this will reach when grass frames go from +100 -> -100
-            if track_processor.grass_consecutive_frames <= -(track_processor.grass_frame_threshold) and track_processor.grass_detected_previously:
-                grass_missed_time = datetime.now()
-                print(f"We're loosing sight of Grass! at {grass_missed_time} ")
-                # keeping at the limit
-                track_processor.grass_consecutive_frames = -(track_processor.grass_frame_threshold)
-                # Add to grass_times list
-                track_processor.grass_times.append({
-                    "type": "grass_stopped",
-                    "time": grass_missed_time.isoformat()
-                })
+                if grass_stats_queue_local:
+                    try:
+                        grass_stats_queue_local.put_nowait(grass_event_data)
+                    except Exception as e:
+                        print(f"Error putting grass event to queue: {e}", error=True)
+            
+            # Check if grass is no longer detected (after being previously detected)
+                elif track_processor.grass_consecutive_frames <= -(track_processor.grass_frame_threshold) and track_processor.grass_detected_previously:
+                 # Condition to reset: if count drops significantly below threshold or to 0 after being positive
+                    grass_missed_time = datetime.now()
+                    print(f"Grass presence dropped below threshold at {grass_missed_time}")
+                    track_processor.grass_detected_previously = False
+                    # track_processor.grass_consecutive_frames = 0 # Reset counter
 
+                    grass_event_data = {
+                        "type": "grass_stopped",
+                        "time": grass_missed_time.isoformat()
+                    }
+                    if grass_stats_queue_local:
+                        try:
+                            grass_stats_queue_local.put_nowait(grass_event_data)
+                        except Exception as e:
+                            print(f"Error putting grass event to queue: {e}", error=True)
 
         # Each meta object carries max 16 rects/labels/etc.
         max_drawings_per_meta = 16  # This is hardcoded, not documented
@@ -682,6 +694,7 @@ def main(
     output_filename: str = None,
     e_external_interrupt: mp.Event = None,
     stats_queue: mp.Queue = None,
+    grass_stats_queue: mp.Queue = None, # Add grass_stats_queue parameter
     e_ready: mp.Event = None,
 ):
     global frame_number
@@ -964,7 +977,7 @@ def main(
     if not osdsinkpad:
         print("Unable to get sink pad of nvosd", error=True)
 
-    cb_args = (track_processor, e_ready)
+    cb_args = (track_processor, e_ready, grass_stats_queue) # Pass grass_stats_queue to cb_args
     osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, cb_buffer_probe, cb_args)
 
     # GLib loop required for RTSP server
@@ -1032,15 +1045,6 @@ def main(
         print("Inference main loop ending.")
         pipeline.set_state(Gst.State.NULL)
 
-        # Save grass detection times to JSON file
-        if track_processor.grass_times:
-            grass_directory = config["grass-detection"]["file-directory"]
-            grass_stats_file = os.path.join(grass_directory, "grass_detection_times.json")
-            os.makedirs(grass_directory, exist_ok=True)
-            print(f"Saving grass detection times to: {grass_stats_file}")
-            with open(grass_stats_file, 'w') as f:
-                json.dump(track_processor.grass_times, f, indent=2)
-
         # Profiling display
         if start_time is not None and end_time is not None:
             total_time = end_time - start_time
@@ -1091,5 +1095,6 @@ if __name__ == "__main__":
             input_filename=input_filename,
             output_filename=output_filename,
             stats_queue=stats_queue,
+            grass_stats_queue=grass_stats_queue_main, # Pass it here for standalone
         )
     )
