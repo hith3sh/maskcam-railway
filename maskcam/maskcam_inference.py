@@ -92,8 +92,8 @@ class RailTrackProcessor:
         self.min_votes = 5
         self.max_votes = 50
         self.color_defective = (1.0, 0.0, 0.0)  # Red
-        self.color_grass = (0.0, 1.0, 0.0, 1.0) # Green
-        self.color_non_defective = (0.0, 0.0, 1.0, 1.0) # Blue
+        self.color_grass = (0.0, 1.0, 0.0) # Green
+        self.color_non_defective = (0.0, 0.0, 1.0) # Blue
         self.color_unknown = (1.0, 1.0, 0.0)  # yellow
         self.draw_raw_detections = disable_tracker
         self.draw_tracked_objects = not disable_tracker
@@ -167,7 +167,7 @@ class RailTrackProcessor:
             label = "Non-defective" if track_votes > 0 else "Defective"
         else:
             color = self.color_unknown
-            label = "grass" #"not visible"
+            label = "grass" #"not visible"  ## CHANGE THIS!
         return f"{track_id}|{label}({abs(track_votes)})", color
 
     def get_instant_statistics(self, refresh=True):
@@ -673,6 +673,7 @@ def show_troubleshooting():
 
     [yellow]END HELP[/yellow]
     """
+    )
 
 
 def main(
