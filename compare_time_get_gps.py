@@ -5,9 +5,9 @@ import os
 import re
 
 stats_dir =  "/home/lab5/Desktop/inference_statistics"
-gps_dir =  "/home/lab5/Desktop/gps_values"
+gps_dir =  "/home/lab5/Desktop/gps_data"
 stats_pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
-gps_pattern = re.compile(r"esp32_gps_(\d{8})_(\d{6})\.txt")
+gps_pattern = re.compile(r"esp32_data_(\d{8})_(\d{6})\.txt")
 
 def find_closest_file(stats_dir, pattern):
     pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")

@@ -1,6 +1,6 @@
 gst-launch-1.0 v4l2src device=/dev/video0 ! image/jpeg,width=640,height=480,framerate=120/1 ! jpegdec ! videorate ! fpsdisplaysink video-sink=fakesink sync=false
 
-python3 maskcam_run.py file:///home/lab5/Desktop/railway-1280_720.mp4
+python3 maskcam_run.py file:///home/lab5/Desktop/maskcam-railway/railway-1280_720.mp4
 
 python3 maskcam_run.py file:///home/lab5/Desktop/fastners_twice.mp4
 
