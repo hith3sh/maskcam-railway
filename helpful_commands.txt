@@ -14,3 +14,8 @@ python3 maskcam_run.py file:///home/lab5/Desktop/fishbolts_at_nighttime.mp4
 
 python3 maskcam_run.py file:///home/lab5/Desktop/fishbolts.mp4
 
+
+Option 1: Add your user to the dialout group
+	🔧 Steps:
+	Open a terminal and run:
+	sudo usermod -a -G dialout $USER

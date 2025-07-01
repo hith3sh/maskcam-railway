@@ -12,7 +12,7 @@ disable-tracker=0
 [grass-detection]
 grass-detection=1
 # grass-detection has to be 1 below to work
-small-grass-detection=0 
+small-grass-detection=0
 frame-threshold=100
 file-directory=/home/lab5/Desktop/inference_statistics/grass/
 
