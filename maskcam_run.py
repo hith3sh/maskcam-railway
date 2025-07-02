@@ -390,6 +390,13 @@ if __name__ == "__main__":
         print(f"Grass events will be saved to: {grass_events_log_file_name}")
         os.makedirs(os.path.dirname(grass_events_log_file_name), exist_ok=True)
 
+        # Write the PID to a unique file for access by other scripts
+        pid = os.getpid()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        pidfile = f"/tmp/maskcam_run_{timestamp}.pid"
+        with open(pidfile, "w") as f:
+            f.write(str(pid))
+        print(f"PID FILE IS WRITTEN: {pidfile}")
 
         while not e_interrupt.is_set():
             # handle_statistics gets called 0.1 seconds to check if there are any stats in the stats_queue
@@ -486,12 +493,7 @@ if __name__ == "__main__":
                 P_SAVESERIAL, save_serial_main, config
             )
 
-        # Write the PID to a unique file for access by other scripts
-        pid = os.getpid()
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pidfile = f"/tmp/maskcam_run_{timestamp}.pid"
-        with open(pidfile, "w") as f:
-            f.write(str(pid))
+
 
     except:  # noqa
         console.print_exception()

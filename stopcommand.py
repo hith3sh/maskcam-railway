@@ -69,7 +69,6 @@ def main():
                 else:
                     print("No running maskcam_run.py process found via PID file.")
 
-                time.sleep(3)
 
                 # Run the 'compare_time_get_gps.py' script
                 print("Running compare_time_get_gps.py...")
