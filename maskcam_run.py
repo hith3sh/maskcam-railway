@@ -34,7 +34,7 @@ from maskcam.maskcam_inference import main as inference_main
 from maskcam.maskcam_filesave import main as filesave_main
 from maskcam.maskcam_fileserver import main as fileserver_main
 from maskcam.maskcam_streaming import main as streaming_main
-
+from maskcam.save_serial import main as save_serial_main
 
 udp_ports_pool = set()
 console = Console()
@@ -48,6 +48,7 @@ P_INFERENCE = "inference"
 P_STREAMING = "streaming"
 P_FILESERVER = "file-server"
 P_FILESAVE_PREFIX = "file-save-"
+P_SAVESERIAL = "save-serial"
 
 processes_info = {}
 all_grass_statistics = [] # New list to store grass events from the queue
@@ -273,6 +274,8 @@ if __name__ == "__main__":
     process_inference = None
     process_fileserver = None
     process_streaming = None
+    process_save_serial = None
+    e_interrupt_save_serial = None
 
     if len(sys.argv) > 2:
         print(
@@ -320,6 +323,9 @@ if __name__ == "__main__":
         fileserver_ram_dir = config["maskcam"]["fileserver-ram-dir"]
         fileserver_hdd_dir = config["maskcam"]["fileserver-hdd-dir"]
 
+        # Save serial: save serial data to a file
+        save_serial_enabled = int(config["maskcam"]["save_serial"])
+
         # Inference restart timeout
         tout_inference_restart = int(config["maskcam"]["timeout-inference-restart"])
         if is_live_input and tout_inference_restart:
@@ -341,6 +347,8 @@ if __name__ == "__main__":
         process_inference = None
         process_streaming = None
         process_fileserver = None
+        process_save_serial = None
+        e_interrupt_save_serial = None
         e_inference_ready = mp.Event()
 
         if fileserver_enabled:
@@ -464,6 +472,20 @@ if __name__ == "__main__":
                     )
                     new_command(CMD_INFERENCE_RESTART)
 
+            # Check if save_serial process has died and restart if needed
+            if save_serial_enabled:
+                if process_save_serial is not None and not process_save_serial.is_alive():
+                    print("[red]save_serial process died. Restarting...[/red]")
+                    process_save_serial, e_interrupt_save_serial = start_process(
+                        P_SAVESERIAL, save_serial_main, config
+                    )
+
+        # Start save_serial.py as a subprocess if enabled
+        if save_serial_enabled:
+            process_save_serial, e_interrupt_save_serial = start_process(
+                P_SAVESERIAL, save_serial_main, config
+            )
+
     except:  # noqa
         console.print_exception()
 
@@ -527,5 +549,12 @@ if __name__ == "__main__":
     try:
         if process_streaming is not None and process_streaming.is_alive():
             terminate_process(P_STREAMING, process_streaming, e_interrupt_streaming)
+    except:  # noqa
+        console.print_exception()
+
+    # Terminate save_serial process
+    try:
+        if process_save_serial is not None and process_save_serial.is_alive():
+            terminate_process(P_SAVESERIAL, process_save_serial, e_interrupt_save_serial)
     except:  # noqa
         console.print_exception()
