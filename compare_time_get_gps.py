@@ -4,19 +4,17 @@ from dateutil import parser as date_parser
 import os
 import re
 
-stats_dir =  "/home/lab5/Desktop/inference_statistics"
-gps_dir =  "/home/lab5/Desktop/gps_data"
+stats_dir ="/home/lab5/Desktop/inference_statistics"
+gps_dir ="/home/lab5/Desktop/gps_data"
 stats_pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
 gps_pattern = re.compile(r"esp32_data_(\d{8})_(\d{6})\.txt")
 
-def find_closest_file(stats_dir, pattern):
-    pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
+def find_closest_file(directory, pattern):
     now = datetime.now()
-
     closest_file = None
     smallest_diff = None
 
-    for filename in os.listdir(stats_dir):
+    for filename in os.listdir(directory):
         match = pattern.match(filename)
         if match:
             date_str, time_str = match.groups()
@@ -33,25 +31,59 @@ def find_closest_file(stats_dir, pattern):
 
     return closest_file
 
-# Load ESP32 GPS data
+
 def load_gps_data(file_path):
     gps_data = []
     with open(file_path, 'r') as f:
         for line in f:
-            if "Lat" in line and "Lon" in line and "Time" in line:
-                parts = line.strip().split(',')
-                lat = float(parts[0].split(':')[1].strip())
-                lon = float(parts[1].split(':')[1].strip())
-                time_str = parts[2].split(':', 1)[1].strip()
-                time_obj = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
-                gps_data.append({'lat': lat, 'lon': lon, 'time': time_obj})
+            line = line.strip()
+            if '@' not in line:
+                continue  # skip invalid lines
+
+            try:
+                prefix, rest = line.split(':', 1)
+                coords_part, time_part = rest.split('@')
+                lat_str, lon_str = coords_part.strip().split(',')
+                time_str = time_part.strip()
+
+                lat = float(lat_str.strip())
+                lon = float(lon_str.strip())
+                time_obj = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S")
+
+                gps_data.append({
+                    'lat': lat,
+                    'lon': lon,
+                    'time': time_obj
+                })
+            except (ValueError, IndexError):
+                continue  # skip lines that don't match the expected format
     return gps_data
+
 
 # Load defective tracks
 def load_defective_tracks(file_path):
+    """
+    Handles either:
+      [ {…}, {…} ]             → returns that list
+      [ [ {…}, {…} ] ]         → returns the inner list
+      { "defective_tracks": […] } → returns the list
+    """
     with open(file_path, 'r') as f:
         data = json.load(f)
-    return data[0]['defective_tracks']
+
+    # case: top‑level dict with key "defective_tracks"
+    if isinstance(data, dict) and 'defective_tracks' in data:
+        return data['defective_tracks']
+
+    # case: list of dicts
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        return data
+
+    # case: nested list
+    if isinstance(data, list) and data and isinstance(data[0], list):
+        return data[0]
+
+    return []
 
 # Find closest GPS entry for a given detection time
 def find_nearest_gps(detection_time, gps_data):
@@ -69,7 +101,7 @@ def find_nearest_gps(detection_time, gps_data):
 # Main comparison logic
 def main():
     # gps data file
-    gps_txt_file = find_closest_file(stats_dir, gps_pattern)
+    gps_txt_file = find_closest_file(gps_dir, gps_pattern)
     gps_txt_file_path = os.path.join(gps_dir, gps_txt_file)
     gps_data = load_gps_data(gps_txt_file_path)
 
@@ -78,18 +110,31 @@ def main():
     file_path = os.path.join(stats_dir, file_name)
     defective_tracks = load_defective_tracks(file_path)
     
+    # prepare output directory and file
+    output_dir = "/home/lab5/Desktop/final_data"
+    os.makedirs(output_dir, exist_ok=True)
+    output_filename = f"matched_gps_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    output_path = os.path.join(output_dir, output_filename)
+    
+    with open(output_path, 'w') as out_file:
+        for track in defective_tracks:
+            detection_time = date_parser.parse(track['detection_time'])
+            nearest_gps = find_nearest_gps(detection_time, gps_data)
 
-    for track in defective_tracks:
-        track_id = track['track_id']
-        detection_time = date_parser.parse(track['detection_time'])
-        nearest_gps = find_nearest_gps(detection_time, gps_data)
+            if nearest_gps:
+                measurement = "inference_result"
+                tag_part = f"track_id={track['track_id']}"
+                field_part = (
+                    f"confidence={track.get('confidence', 0)},"
+                    f"matched_lat={nearest_gps['lat']},"
+                    f"matched_lon={nearest_gps['lon']}"
+                )
+                timestamp_ns = int(nearest_gps['time'].timestamp() * 1e9)
 
-        if nearest_gps:
-            print(f"Track ID: {track_id}")
-            print(f"Detection Time: {detection_time}")
-            print(f"Nearest GPS Time: {nearest_gps['time']}")
-            print(f"Lat: {nearest_gps['lat']}, Lon: {nearest_gps['lon']}")
-            print("-" * 40)
+                output_text = f"{measurement},{tag_part} {field_part} {timestamp_ns}\n"
+                out_file.write(output_text)
+            else:
+                print("No matching GPS found")           
 
 if __name__ == "__main__":
     main()

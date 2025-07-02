@@ -16,7 +16,7 @@ try:
         current_input = GPIO.input(12)
         if current_input == 0 and prev_input == 1:
             print("Switch turned ON. Shutting down...")
-            subprocess.call(["sudo", "shutdown", "now"])
+            subprocess.run(["/bin/systemctl", "poweroff"])
             break  # Optional: exit loop after triggering shutdown
         prev_input = current_input
         time.sleep(0.1)
