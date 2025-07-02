@@ -8,15 +8,6 @@ import time
 import subprocess
 import signal
 
-# Set up GPIO
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(13, GPIO.IN)
-
-# Track previous state to detect rising edge
-prev_input = GPIO.input(13)
-
-
-
 def find_closest_pidfile(directory="/tmp", prefix="maskcam_run_", suffix=".pid"):
     # List all matching pid files
     pattern = os.path.join(directory, f"{prefix}*{suffix}")
@@ -55,53 +46,52 @@ def find_closest_pidfile(directory="/tmp", prefix="maskcam_run_", suffix=".pid")
         print("No valid PID files found.")
         return None
 
+def main():
+    # Set up GPIO
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(13, GPIO.IN)
 
+    # Track previous state to detect rising edge
+    prev_input = GPIO.input(13)
 
+    try:
+        while True:
+            current_input = GPIO.input(13)
+            if current_input == 0 and prev_input == 1:
+                print("Switch turned ON. Sending SIGINT (Ctrl+C)...")
 
+                # Find the closest maskcam_run.py PID using the PID file logic
+                result = find_closest_pidfile()
+                if result:
+                    _, pid = result
+                    os.kill(int(pid), signal.SIGINT)
+                    print(f"Sent SIGINT to process {pid} (maskcam_run.py)")
+                else:
+                    print("No running maskcam_run.py process found via PID file.")
 
-try:
-    while True:
-        current_input = GPIO.input(13)
-        if current_input == 0 and prev_input == 1:
-            print("Switch turned ON. Sending SIGINT (Ctrl+C)...")
+                time.sleep(3)
 
-            # Find the process ID of the script you want to send SIGINT to.
-            # Assuming you want to interrupt 'compare.py' if it's running.
-            # Adjust the name of the script you need to interrupt, or improve the process finding logic.
-            pid = subprocess.check_output(["pgrep", "-f", "maskcam_run.py"]).decode("utf-8").strip()
+                # Run the 'compare_time_get_gps.py' script
+                print("Running compare_time_get_gps.py...")
+                subprocess.Popen(["python3", "compare_time_get_gps.py"])
 
-            # Send SIGINT (Ctrl+C) to that process
-            if pid:
-                os.kill(int(pid), signal.SIGINT)
-                print(f"Sent SIGINT to process {pid} (maskcam_run.py)")
+                # Delay before running the second script
+                time.sleep(1) 
 
-            # Run the 'compare.py' script
-            print("Running compare.py...")
-            subprocess.Popen(["python3", "compare_time_get_gps.py"])
+                # Run the 'send_data_telegraf.py' script
+                print("Running send_data_telegraf.py...")
+                subprocess.Popen(["python3", "send_data_telegraf.py"])
 
-            # Delay before running the second script
-            time.sleep(3)  # Adjust delay as needed
+                break
 
-            # Run the 'send_data_to_telegrf.py' script
-            print("Running send_data_to_telegrf.py...")
-            subprocess.Popen(["python3", "send_data_telegraf.py"])
+            prev_input = current_input
+            time.sleep(0.1)
 
-            break  # Optional: exit loop after triggering actions
+    except KeyboardInterrupt:
+        print("Script interrupted by user.")
 
-        prev_input = current_input
-        time.sleep(0.1)
-
-except KeyboardInterrupt:
-    print("Script interrupted by user.")
-
-finally:
-    GPIO.cleanup()
-
-
-
-
-
-
+    finally:
+        GPIO.cleanup()
 
 if __name__ == "__main__":
-    find_closest_pidfile()
+    main()
