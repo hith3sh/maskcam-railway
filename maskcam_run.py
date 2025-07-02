@@ -486,6 +486,13 @@ if __name__ == "__main__":
                 P_SAVESERIAL, save_serial_main, config
             )
 
+        # Write the PID to a unique file for access by other scripts
+        pid = os.getpid()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        pidfile = f"/tmp/maskcam_run_{timestamp}.pid"
+        with open(pidfile, "w") as f:
+            f.write(str(pid))
+
     except:  # noqa
         console.print_exception()
 
