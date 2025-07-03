@@ -17,7 +17,7 @@ mobilenetv2/converted_trt_*.pb
 *.trt
 *.engine
 *.onnx
-
+labels.txt
 # Environment files (not templates)
 server/*.env
 
