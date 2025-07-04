@@ -60,30 +60,34 @@ def load_gps_data(file_path):
     return gps_data
 
 
-# Load defective tracks
 def load_defective_tracks(file_path):
     """
-    Handles either:
-      [ {…}, {…} ]             → returns that list
-      [ [ {…}, {…} ] ]         → returns the inner list
-      { "defective_tracks": […] } → returns the list
+    Load tracks from JSON, flattening any level of nested lists.
+    Supports:
+      - { 'defective_tracks': [...] }
+      - [ {...}, {...} ]
+      - nested lists like [ [ {...} ], [ {...} ] ]
     """
     with open(file_path, 'r') as f:
         data = json.load(f)
 
-    # case: top‑level dict with key "defective_tracks"
+    # Extract the list under key if present
     if isinstance(data, dict) and 'defective_tracks' in data:
-        return data['defective_tracks']
+        data_list = data['defective_tracks']
+    else:
+        data_list = data
 
-    # case: list of dicts
-    if isinstance(data, list) and data and isinstance(data[0], dict):
-        return data
+    # Recursively flatten lists to a list of dicts
+    def flatten(obj):
+        flat = []
+        if isinstance(obj, list):
+            for item in obj:
+                flat.extend(flatten(item))
+        elif isinstance(obj, dict):
+            flat.append(obj)
+        return flat
 
-    # case: nested list
-    if isinstance(data, list) and data and isinstance(data[0], list):
-        return data[0]
-
-    return []
+    return flatten(data_list)
 
 # Find closest GPS entry for a given detection time
 def find_nearest_gps(detection_time, gps_data):
@@ -103,6 +107,11 @@ def main():
     # gps data file
     gps_txt_file = find_closest_file(gps_dir, gps_pattern)
     gps_txt_file_path = os.path.join(gps_dir, gps_txt_file)
+    
+    #  Check if the GPS file is empty
+    if os.stat(gps_path).st_size == 0:
+        print(f"GPS file {gps_file} is empty. Aborting.")
+        return
     gps_data = load_gps_data(gps_txt_file_path)
 
     #inference stats file
@@ -134,7 +143,7 @@ def main():
                 output_text = f"{measurement},{tag_part} {field_part} {timestamp_ns}\n"
                 out_file.write(output_text)
             else:
-                print("No matching GPS found")           
+                print("No matching GPS found for current track")           
 
 if __name__ == "__main__":
     main()
