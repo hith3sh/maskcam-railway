@@ -398,6 +398,12 @@ if __name__ == "__main__":
             f.write(str(pid))
         print(f"PID FILE IS WRITTEN: {pidfile}")
 
+        if save_serial_enabled:
+            process_save_serial, e_interrupt_save_serial = start_process(
+                P_SAVESERIAL, save_serial_main, config
+            )
+
+        # MAIN PROGRAM LOOP    
         while not e_interrupt.is_set():
             # handle_statistics gets called 0.1 seconds to check if there are any stats in the stats_queue
             # Retrieves statistics from stats_queue and appends them to all_statistics,
@@ -487,11 +493,7 @@ if __name__ == "__main__":
                         P_SAVESERIAL, save_serial_main, config
                     )
 
-        # Start save_serial.py as a subprocess if enabled
-        if save_serial_enabled:
-            process_save_serial, e_interrupt_save_serial = start_process(
-                P_SAVESERIAL, save_serial_main, config
-            )
+        
 
 
 

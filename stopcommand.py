@@ -69,7 +69,6 @@ def main():
                 else:
                     print("No running maskcam_run.py process found via PID file.")
 
-
                 # Run the 'compare_time_get_gps.py' script
                 print("Running compare_time_get_gps.py...")
                 subprocess.Popen(["python3", "compare_time_get_gps.py"])
