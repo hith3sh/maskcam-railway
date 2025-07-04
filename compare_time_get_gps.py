@@ -102,20 +102,26 @@ def find_nearest_gps(detection_time, gps_data):
                 nearest_entry = entry
     return nearest_entry
 
-# Main comparison logic
 def main():
     # gps data file
     gps_txt_file = find_closest_file(gps_dir, gps_pattern)
+    # check if there is no file
+    if gps_txt_file is None:
+        print(f"Error: No GPS data file found in {gps_dir}")
+        return
     gps_txt_file_path = os.path.join(gps_dir, gps_txt_file)
     
     #  Check if the GPS file is empty
-    if os.stat(gps_path).st_size == 0:
-        print(f"GPS file {gps_file} is empty. Aborting.")
+    if os.stat(gps_txt_file_path).st_size == 0:
+        print(f"GPS file {gps_txt_file} is empty. Aborting.")
         return
     gps_data = load_gps_data(gps_txt_file_path)
 
     #inference stats file
     file_name = find_closest_file(stats_dir, stats_pattern)
+    if file_name is None:
+        print(f"Error: No inference statistics file found in directory: {stats_dir}")
+        return
     file_path = os.path.join(stats_dir, file_name)
     defective_tracks = load_defective_tracks(file_path)
     
