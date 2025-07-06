@@ -34,7 +34,7 @@ def main(config=None, e_external_interrupt=None):
                 if line:
                     decoded_line = line.decode('utf-8', errors='ignore').strip()
                     if decoded_line: # Ensure it's not an empty line
-                        print(decoded_line)
+                        #print(decoded_line)
                         f.write(decoded_line + '\n')
                         f.flush()
 
