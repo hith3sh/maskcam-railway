@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Directory and file pattern
 final_data_dir = "/home/lab5/Desktop/final_data"
-final_data_pattern = re.compile(r"matched_gps_(\d{8})_(\d{6})\.txt")
+final_data_pattern = re.compile(r"matched_gps_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.txt")
 
 # Telegraf listener endpoint
 telegraf_url = "http://localhost:8186/telegraf"
@@ -19,9 +19,10 @@ def find_closest_file(directory, pattern):
         match = pattern.match(filename)
         if match:
             date_str, time_str = match.groups()
-            file_time_str = date_str + time_str
+            #file_time_str = date_str + time_str
+            file_time_str = date_str + ' ' + time_str
             try:
-                file_datetime = datetime.strptime(file_time_str, "%Y%m%d%H%M%S")
+                file_datetime = datetime.strptime(file_time_str, "%Y-%m-%d %H-%M-%S")
             except ValueError:
                 continue
 
