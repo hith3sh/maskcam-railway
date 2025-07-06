@@ -6,7 +6,7 @@ import re
 
 stats_dir ="/home/lab5/Desktop/inference_statistics"
 gps_dir ="/home/lab5/Desktop/gps_data"
-stats_pattern = re.compile(r"inference_statistics_(\d{8})_(\d{6})\.json")
+stats_pattern = re.compile(r"inference_statistics_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.json")
 gps_pattern = re.compile(r"esp32_data_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.txt")
 
 def find_closest_file(directory, pattern):

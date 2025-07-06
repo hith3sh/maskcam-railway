@@ -379,7 +379,7 @@ if __name__ == "__main__":
         last_write_time = datetime.now()  # Track the last write time
 
 
-        timestamp_for_json_file = last_write_time.strftime("%Y%m%d_%H%M%S")
+        timestamp_for_json_file = last_write_time.strftime("%Y-%m-%d_%H-%M-%S")
         stats_file_name = os.path.join(stats_dir, f"inference_statistics_{timestamp_for_json_file}.json")
         print(f"Statistics will be saved to: {stats_file_name}")
         os.makedirs(os.path.dirname(stats_file_name), exist_ok=True)
@@ -396,7 +396,7 @@ if __name__ == "__main__":
         pidfile = f"/tmp/maskcam_run_{timestamp}.pid"
         with open(pidfile, "w") as f:
             f.write(str(pid))
-        print(f"PID FILE IS WRITTEN: {pidfile}")
+        print(f"PID file is written to : {pidfile}")
 
         if save_serial_enabled:
             process_save_serial, e_interrupt_save_serial = start_process(
