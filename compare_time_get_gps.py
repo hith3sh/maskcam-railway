@@ -151,7 +151,7 @@ def main():
             else:
                 print("No matching GPS found for current track")           
 
-    print(f"File {output_filename} is written to {output_path} successfully!")
+    print(f"File {output_filename} is written to {output_dir} successfully!")
 
 if __name__ == "__main__":
     main()
