@@ -20,7 +20,7 @@ def find_closest_file(directory, pattern):
             date_str, time_str = match.groups()
             file_time_str = date_str + time_str
             try:
-                file_datetime = datetime.strptime(file_time_str, "%Y%m%d%H%M%S")
+                file_datetime = datetime.strptime(file_time_str, "%Y-%m-%d %H-%M-%S")
             except ValueError:
                 continue
 
