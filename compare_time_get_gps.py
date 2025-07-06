@@ -128,7 +128,7 @@ def main():
     # prepare output directory and file
     output_dir = "/home/lab5/Desktop/final_data"
     os.makedirs(output_dir, exist_ok=True)
-    output_filename = f"matched_gps_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    output_filename = f"matched_gps_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
     output_path = os.path.join(output_dir, output_filename)
     
     with open(output_path, 'w') as out_file:
@@ -150,6 +150,8 @@ def main():
                 out_file.write(output_text)
             else:
                 print("No matching GPS found for current track")           
+
+    print(f"File {output_filename} is written to {output_path} successfully!")
 
 if __name__ == "__main__":
     main()
