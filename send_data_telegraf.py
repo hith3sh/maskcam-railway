@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Directory and file pattern
 final_data_dir = "/home/lab5/Desktop/final_data"
-final_data_pattern = re.compile(r"matched_gps_(\d{8})_(\d{6})\.txt")
+final_data_pattern = re.compile(r"matched_gps_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.txt")
 
 # Telegraf listener endpoint
 telegraf_url = "http://localhost:8186/telegraf"

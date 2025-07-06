@@ -9,6 +9,16 @@ gps_dir ="/home/lab5/Desktop/gps_data"
 stats_pattern = re.compile(r"inference_statistics_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.json")
 gps_pattern = re.compile(r"esp32_data_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.txt")
 
+# Read species from file
+species_file = "/tmp/fault_type.txt"
+if os.path.exists(species_file):
+    with open(species_file, "r") as f:
+        species = f.read().strip()
+else:
+    species = "fastener"
+
+
+
 def find_closest_file(directory, pattern):
     now = datetime.now()
     closest_file = None
@@ -142,7 +152,8 @@ def main():
                 field_part = (
                     f"confidence={track.get('confidence', 0)},"
                     f"matched_lat={nearest_gps['lat']},"
-                    f"matched_lon={nearest_gps['lon']}"
+                    f"matched_lon={nearest_gps['lon']},"
+                    f"species='{species}'"
                 )
                 timestamp_ns = int(nearest_gps['time'].timestamp() * 1e9)
 
