@@ -306,14 +306,15 @@ if __name__ == "__main__":
         else:
             input_filename = config["maskcam"]["default-input"]
             print(f"Using input from config file: {input_filename}")
-            # Prompt user for fault type
-            while True:
-                fault_type = input("What is the fault type? (fastener/fishbolt): ").strip().lower()
-                if fault_type in ["fastener", "fishbolt"]:
-                    break
-                print("Invalid fault type. Please enter 'fastener' or 'fishbolt'.")
-            with open("/tmp/fault_type.txt", "w") as f:
-                f.write(fault_type)
+
+        # Prompt user for fault type (always ask)
+        while True:
+            fault_type = input("What is the fault type? (fastener/fishbolt): ").strip().lower()
+            if fault_type in ["fastener", "fishbolt"]:
+                break
+            print("Invalid fault type. Please enter 'fastener' or 'fishbolt'.")
+        with open("/tmp/fault_type.txt", "w") as f:
+            f.write(fault_type)
 
         # Input type: file or live camera
         is_usbcamera = USBCAM_PROTOCOL in input_filename
