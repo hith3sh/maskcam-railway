@@ -89,7 +89,7 @@ class RailTrackProcessor:
         self.tracker_period = tracker_period
         self.min_track_size = min_track_size
         self.disable_detection_validation = False
-        self.min_votes = 5
+        self.min_votes = 1
         self.max_votes = 50
         self.color_defective = (1.0, 0.0, 0.0)  # Red
         self.color_grass = (0.0, 1.0, 0.0) # Green
@@ -149,28 +149,36 @@ class RailTrackProcessor:
             if score > self.th_vote:
                 if label == LABEL_NON_DEFECTIVE:
                     self.track_votes[track_id] += 1
+                    print(f"Track {track_id}: +1 vote for Non-defective (score: {score:.3f})")
                 elif label == LABEL_DEFECTIVE:
                     self.track_votes[track_id] -= 1
+                    print(f"Track {track_id}: -1 vote for Defective (score: {score:.3f})")
                     # captures the moment the track is confidently classified as defective                
                     if previous_votes > -self.min_votes and self.track_votes[track_id] <= -self.min_votes:
                         if track_id not in self.track_detection_times:
                             self.track_detection_times[track_id] = datetime.now()
+                else:
+                    print(f"Track {track_id}: Unknown label '{label}' with score {score:.3f}")
                 # max_votes limit
                 self.track_votes[track_id] = np.clip(
                     self.track_votes[track_id], -self.max_votes, self.max_votes
                 )
+            else:
+                print(f"Track {track_id}: Score {score:.3f} below threshold {self.th_vote}, no vote")
 
     def get_track_label(self, track_id):
         track_votes = self.track_votes[track_id]
         if abs(track_votes) >= self.min_votes:
             color = self.color_non_defective if track_votes > 0 else self.color_defective
             label = "Non-defective" if track_votes > 0 else "Defective"
+            print(f"Track {track_id}: Classified as {label} with {abs(track_votes)} votes")
         else:
             color = self.color_unknown
             if SMALL_GRASS_DETECTOR:
-                label = "Non-Defective"
+                label = "Grass"
             else:
-                label = "Defective"
+                label = "Not visible"
+            print(f"Track {track_id}: {label} with {abs(track_votes)} votes (need {self.min_votes})")
         return f"{track_id}|{label}({abs(track_votes)})", color
     
 
@@ -346,6 +354,8 @@ def cb_buffer_probe(pad, info, cb_args):
             )
             box_p = obj_meta.confidence
             box_label = obj_meta.obj_label
+            # Debug print to see what's being detected
+            print(f"Detection: {box_label} | Confidence: {box_p:.3f} | Score threshold: {track_processor.th_vote}")
             if track_processor.validate_detection(box_points, box_p, box_label):
                 det_data = {"label": box_label, "p": box_p}
                 detections.append(
