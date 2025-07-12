@@ -171,14 +171,12 @@ class RailTrackProcessor:
         if abs(track_votes) >= self.min_votes:
             color = self.color_non_defective if track_votes > 0 else self.color_defective
             label = "Non-Defective" if track_votes > 0 else "Defective"  # Changed to match model output
-            print(f"Track {track_id}: Classified as {label} with {abs(track_votes)} votes")
         else:
             color = self.color_unknown
             if SMALL_GRASS_DETECTOR:
                 label = "Grass"
             else:
                 label = "Not visible"
-            print(f"Track {track_id}: {label} with {abs(track_votes)} votes (need {self.min_votes})")
         return f"{track_id}|{label}({abs(track_votes)})", color
     
 
@@ -354,8 +352,8 @@ def cb_buffer_probe(pad, info, cb_args):
             )
             box_p = obj_meta.confidence
             box_label = obj_meta.obj_label
-            # Debug print to see what's being detected
-            print(f"Detection: {box_label} | Confidence: {box_p:.3f} | Score threshold: {track_processor.th_vote}")
+            # Debug print to see all detections
+            print(f"Detection: {box_label} | Confidence: {box_p:.3f}")
             if track_processor.validate_detection(box_points, box_p, box_label):
                 det_data = {"label": box_label, "p": box_p}
                 detections.append(
