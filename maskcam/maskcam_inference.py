@@ -168,9 +168,9 @@ class RailTrackProcessor:
         else:
             color = self.color_unknown
             if SMALL_GRASS_DETECTOR:
-                label = "grass"
+                label = "Defective"
             else:
-                label = "not visible"
+                label = "Non-defective"
         return f"{track_id}|{label}({abs(track_votes)})", color
     
 
