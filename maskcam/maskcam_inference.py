@@ -160,18 +160,30 @@ class RailTrackProcessor:
                     self.track_votes[track_id], -self.max_votes, self.max_votes
                 )
 
+    # def get_track_label(self, track_id):
+    #     track_votes = self.track_votes[track_id]
+    #     if abs(track_votes) >= self.min_votes:
+    #         color = self.color_non_defective if track_votes > 0 else self.color_defective
+    #         label = "Non-defective" if track_votes > 0 else "Defective"
+    #     else:
+    #         color = self.color_unknown
+    #         if SMALL_GRASS_DETECTOR:
+    #             label = "grass"
+    #         else:
+    #             label = "not visible"
+    #     return f"{track_id}|{label}({abs(track_votes)})", color
+    
+
     def get_track_label(self, track_id):
         track_votes = self.track_votes[track_id]
+
         if abs(track_votes) >= self.min_votes:
             color = self.color_non_defective if track_votes > 0 else self.color_defective
             label = "Non-defective" if track_votes > 0 else "Defective"
+            return f"{track_id}|{label}({abs(track_votes)})", color
         else:
-            color = self.color_unknown
-            if SMALL_GRASS_DETECTOR:
-                label = "grass"
-            else:
-                label = "not visible"
-        return f"{track_id}|{label}({abs(track_votes)})", color
+            return None  # or return "", None
+
 
     def get_instant_statistics(self, refresh=True):
         """
