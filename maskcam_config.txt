@@ -4,7 +4,7 @@
 # Detections with score below this threshold will be discarded
 detection-threshold=0.1
 # Only vote defective/non-defective when detection score is above this
-voting-threshold=0.1
+voting-threshold=0.05
 # Smaller detections (in pixels) will be discarded
 min-track-size=4
 disable-tracker=0

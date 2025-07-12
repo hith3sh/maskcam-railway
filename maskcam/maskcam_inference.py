@@ -50,7 +50,7 @@ from .common import (
 from .utils import glib_cb_restart, load_udp_ports_filesaving
 
 LABEL_DEFECTIVE = "Defective"
-LABEL_NON_DEFECTIVE = "Non-defective"
+LABEL_NON_DEFECTIVE = "Non-Defective"
 LABEL_GRASS = "grass"
 FRAMES_LOG_INTERVAL = int(config["maskcam"]["inference-log-interval"])
 SMALL_GRASS_DETECTOR = int(config["grass-detection"]["small-grass-detection"])
@@ -170,7 +170,7 @@ class RailTrackProcessor:
         track_votes = self.track_votes[track_id]
         if abs(track_votes) >= self.min_votes:
             color = self.color_non_defective if track_votes > 0 else self.color_defective
-            label = "Non-defective" if track_votes > 0 else "Defective"
+            label = "Non-Defective" if track_votes > 0 else "Defective"  # Changed to match model output
             print(f"Track {track_id}: Classified as {label} with {abs(track_votes)} votes")
         else:
             color = self.color_unknown
