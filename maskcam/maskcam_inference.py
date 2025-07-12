@@ -179,9 +179,10 @@ class RailTrackProcessor:
         #     else:
         #         label = "Not visible"
         # return f"{track_id}|{label}({abs(track_votes)})", color
-        # Completely remove all labels - just show track ID
-        color = self.color_unknown  # Use neutral color for all tracks
-        return f"{track_id}", color
+        # Completely remove all labels and colors - just show track ID
+        # color = self.color_unknown  # Use neutral color for all tracks
+        # return f"{track_id}", color
+        return f"{track_id}", None
     
 
 
@@ -271,11 +272,15 @@ def draw_detection(display_meta, n_draw, box_points, detection_label, color):
     rect.width = x2 - x1
     rect.height = y2 - y1
     # print(f"{x1} {y1}, {x2} {y2}")
-    # Bug: bg color is always green
-    # rect.has_bg_color = True
-    # rect.bg_color.set(0.5, 0.5, 0.5, 0.6)  # RGBA
-    rect.border_color.set(*color, 1.0)
-    rect.border_width = 2
+    
+    # Only set color if provided (not None)
+    if color is not None:
+        rect.border_color.set(*color, 1.0)
+        rect.border_width = 2
+    else:
+        # No border if no color
+        rect.border_width = 0
+    
     label = display_meta.text_params[n_draw]
     label.x_offset = x1
     label.y_offset = y2
@@ -284,8 +289,13 @@ def draw_detection(display_meta, n_draw, box_points, detection_label, color):
     label.font_params.font_color.set(0, 0, 0, 1.0)  # Black
     # label.display_text = f"{person.id} | {detection_p:.2f}"
     label.display_text = detection_label
-    label.set_bg_clr = True
-    label.text_bg_clr.set(*color, 0.5)
+    
+    # Only set background color if color is provided
+    if color is not None:
+        label.set_bg_clr = True
+        label.text_bg_clr.set(*color, 0.5)
+    else:
+        label.set_bg_clr = False
 
     display_meta.num_rects = n_draw + 1
     display_meta.num_labels = n_draw + 1
