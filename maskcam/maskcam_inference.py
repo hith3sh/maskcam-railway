@@ -179,6 +179,7 @@ class RailTrackProcessor:
         #     else:
         #         label = "Not visible"
         # return f"{track_id}|{label}({abs(track_votes)})", color
+        
         # Completely remove all labels and colors - just show track ID
         # color = self.color_unknown  # Use neutral color for all tracks
         # return f"{track_id}", color
