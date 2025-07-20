@@ -1,6 +1,14 @@
 # MaskCam Railway Defect Detection
 
+### Detections
 ![ezgif com-resize](https://github.com/user-attachments/assets/9afd611d-be19-46ba-9ea3-87bcad98a0f2)
+<img width="697" height="605" alt="Poster Presentation (2)" src="https://github.com/user-attachments/assets/a81e2d20-fae0-4f03-9566-ea9aa93493ed" />
+
+#### How data was handled
+<img width="945" height="633" alt="Poster Presentation (1)" src="https://github.com/user-attachments/assets/e34d9bc1-1b4f-4526-81b3-f0f8c5df03c6" />
+
+#### Real time faults update on Grafana Dashboard
+  <img width="1503" height="610" alt="Poster Presentation" src="https://github.com/user-attachments/assets/f159b797-ad57-47b5-a5c7-87e2945a1052" />
 
 
 ## Project Overview
